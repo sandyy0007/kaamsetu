@@ -1,0 +1,35 @@
+node_modules
+.next
+.data
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+next-env.d.ts
+test-results
+playwright-report
+screens
+
+# Keystores & Production Credentials
+credentials/
+keystores/
+*.jks
+*.keystore
+keystore.properties
+
+# Android Gradle local cache
+android/.gradle/
+android/app/build/
+android/build/
+
+# Release Artifacts (Publish via GitHub Releases)
+builds/
+
+# System and logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db
+

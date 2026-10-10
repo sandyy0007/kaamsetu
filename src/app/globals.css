@@ -1,0 +1,326 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ════════════════════════════════════════════════════════════════════
+   KaamSetu design tokens.
+   Palette ("farm" | "earth" | "sunrise") × mode ("light" | "dark").
+   Every component reads ONLY these variables, so switching data-theme /
+   data-mode re-skins the entire application (nav, cards, inputs, modals,
+   charts, reels, artwork…) — there is no per-component dark: override.
+   Values are HSL channel triplets so Tailwind alpha modifiers work.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Farm · Light (default) ── */
+:root,
+:root[data-theme="farm"][data-mode="light"] {
+  --background: 42 38% 96%;
+  --foreground: 150 28% 11%;
+  --card: 0 0% 100%;
+  --muted: 40 26% 92%;
+  --muted-foreground: 150 9% 35%;
+  --border: 40 20% 85%;
+  --input: 40 18% 78%;
+  --ring: 142 55% 30%;
+  --primary: 142 56% 26%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 28 52% 36%;
+  --accent-foreground: 0 0% 100%;
+  --highlight: 43 92% 52%;
+  --success: 142 62% 28%;
+  --warning: 32 92% 29%;
+  --danger: 0 68% 44%;
+  --info: 205 75% 34%;
+  --nav: 0 0% 100%;
+  --shadow: 150 30% 12%;
+  --overlay: 150 30% 6%;
+  --chart-1: 142 56% 30%;
+  --chart-2: 28 62% 46%;
+  --chart-3: 205 62% 42%;
+  --chart-4: 43 88% 46%;
+  --chart-5: 340 52% 46%;
+  --sky-1: 38 90% 88%;
+  --sky-2: 190 55% 86%;
+  --sun: 40 100% 62%;
+  --hill-1: 110 28% 62%;
+  --hill-2: 130 34% 46%;
+  --field-1: 140 44% 34%;
+  --field-2: 90 40% 46%;
+  color-scheme: light;
+}
+
+/* ── Farm · Dark (true dark) ── */
+:root[data-theme="farm"][data-mode="dark"] {
+  --background: 150 24% 6%;
+  --foreground: 120 18% 93%;
+  --card: 150 20% 10%;
+  --muted: 150 16% 15%;
+  --muted-foreground: 140 10% 68%;
+  --border: 150 14% 21%;
+  --input: 150 12% 30%;
+  --ring: 142 55% 55%;
+  --primary: 142 52% 46%;
+  --primary-foreground: 150 40% 6%;
+  --accent: 32 58% 62%;
+  --accent-foreground: 28 50% 8%;
+  --highlight: 43 90% 58%;
+  --success: 142 55% 52%;
+  --warning: 38 92% 58%;
+  --danger: 0 78% 71%;
+  --info: 205 80% 66%;
+  --nav: 150 22% 8%;
+  --shadow: 0 0% 0%;
+  --overlay: 150 40% 2%;
+  --chart-1: 142 52% 52%;
+  --chart-2: 32 70% 62%;
+  --chart-3: 205 75% 66%;
+  --chart-4: 45 90% 60%;
+  --chart-5: 340 70% 68%;
+  --sky-1: 232 40% 14%;
+  --sky-2: 215 38% 20%;
+  --sun: 45 90% 80%;
+  --hill-1: 150 22% 20%;
+  --hill-2: 145 26% 16%;
+  --field-1: 142 36% 22%;
+  --field-2: 120 28% 28%;
+  color-scheme: dark;
+}
+
+/* ── Earth · Light ── */
+:root[data-theme="earth"][data-mode="light"] {
+  --background: 36 30% 91%;
+  --foreground: 25 32% 14%;
+  --card: 38 40% 96%;
+  --muted: 34 26% 86%;
+  --muted-foreground: 25 14% 34%;
+  --border: 33 22% 78%;
+  --input: 30 18% 66%;
+  --ring: 92 38% 30%;
+  --primary: 96 38% 27%;
+  --primary-foreground: 40 50% 97%;
+  --accent: 24 50% 34%;
+  --accent-foreground: 40 50% 97%;
+  --highlight: 38 80% 48%;
+  --success: 120 40% 28%;
+  --warning: 30 85% 28%;
+  --danger: 8 62% 38%;
+  --info: 200 50% 32%;
+  --nav: 38 40% 96%;
+  --shadow: 25 40% 12%;
+  --overlay: 25 40% 6%;
+  --chart-1: 96 38% 32%;
+  --chart-2: 24 52% 40%;
+  --chart-3: 200 40% 40%;
+  --chart-4: 38 75% 46%;
+  --chart-5: 350 40% 44%;
+  --sky-1: 30 60% 84%;
+  --sky-2: 40 50% 90%;
+  --sun: 36 90% 60%;
+  --hill-1: 70 22% 56%;
+  --hill-2: 90 26% 38%;
+  --field-1: 100 32% 30%;
+  --field-2: 60 30% 40%;
+  color-scheme: light;
+}
+
+/* ── Earth · Dark ── */
+:root[data-theme="earth"][data-mode="dark"] {
+  --background: 25 20% 7%;
+  --foreground: 38 30% 90%;
+  --card: 25 16% 11%;
+  --muted: 25 14% 16%;
+  --muted-foreground: 32 14% 66%;
+  --border: 28 14% 22%;
+  --input: 28 12% 32%;
+  --ring: 95 40% 56%;
+  --primary: 95 38% 52%;
+  --primary-foreground: 95 40% 7%;
+  --accent: 30 52% 62%;
+  --accent-foreground: 25 40% 8%;
+  --highlight: 40 80% 58%;
+  --success: 110 42% 56%;
+  --warning: 36 85% 58%;
+  --danger: 8 72% 71%;
+  --info: 200 55% 64%;
+  --nav: 25 18% 9%;
+  --shadow: 0 0% 0%;
+  --overlay: 25 30% 3%;
+  --chart-1: 95 40% 56%;
+  --chart-2: 30 55% 62%;
+  --chart-3: 200 50% 62%;
+  --chart-4: 42 78% 58%;
+  --chart-5: 350 50% 66%;
+  --sky-1: 25 30% 14%;
+  --sky-2: 30 26% 20%;
+  --sun: 40 80% 76%;
+  --hill-1: 40 16% 22%;
+  --hill-2: 60 18% 17%;
+  --field-1: 90 26% 22%;
+  --field-2: 50 22% 26%;
+  color-scheme: dark;
+}
+
+/* ── Sunrise · Light ── */
+:root[data-theme="sunrise"][data-mode="light"] {
+  --background: 38 80% 96%;
+  --foreground: 20 38% 13%;
+  --card: 0 0% 100%;
+  --muted: 38 62% 91%;
+  --muted-foreground: 20 16% 33%;
+  --border: 36 48% 82%;
+  --input: 34 36% 72%;
+  --ring: 20 88% 42%;
+  --primary: 20 88% 35%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 142 52% 28%;
+  --accent-foreground: 0 0% 100%;
+  --highlight: 44 96% 50%;
+  --success: 142 58% 28%;
+  --warning: 34 94% 28%;
+  --danger: 2 70% 44%;
+  --info: 205 72% 34%;
+  --nav: 0 0% 100%;
+  --shadow: 20 50% 14%;
+  --overlay: 20 50% 6%;
+  --chart-1: 20 86% 46%;
+  --chart-2: 142 50% 32%;
+  --chart-3: 44 92% 46%;
+  --chart-4: 205 62% 42%;
+  --chart-5: 340 56% 46%;
+  --sky-1: 22 96% 82%;
+  --sky-2: 44 100% 88%;
+  --sun: 38 100% 58%;
+  --hill-1: 40 50% 66%;
+  --hill-2: 120 30% 44%;
+  --field-1: 135 42% 34%;
+  --field-2: 70 46% 46%;
+  color-scheme: light;
+}
+
+/* ── Sunrise · Dark ── */
+:root[data-theme="sunrise"][data-mode="dark"] {
+  --background: 20 28% 7%;
+  --foreground: 36 40% 92%;
+  --card: 20 22% 11%;
+  --muted: 20 18% 16%;
+  --muted-foreground: 30 16% 68%;
+  --border: 22 16% 23%;
+  --input: 22 14% 33%;
+  --ring: 25 92% 60%;
+  --primary: 24 92% 56%;
+  --primary-foreground: 20 50% 7%;
+  --accent: 142 46% 52%;
+  --accent-foreground: 142 40% 6%;
+  --highlight: 45 94% 58%;
+  --success: 142 52% 54%;
+  --warning: 40 94% 58%;
+  --danger: 4 80% 72%;
+  --info: 205 78% 66%;
+  --nav: 20 24% 9%;
+  --shadow: 0 0% 0%;
+  --overlay: 20 40% 3%;
+  --chart-1: 24 92% 60%;
+  --chart-2: 142 46% 54%;
+  --chart-3: 45 92% 60%;
+  --chart-4: 205 72% 66%;
+  --chart-5: 340 66% 68%;
+  --sky-1: 18 50% 18%;
+  --sky-2: 30 46% 24%;
+  --sun: 40 94% 70%;
+  --hill-1: 20 22% 22%;
+  --hill-2: 120 18% 18%;
+  --field-1: 135 30% 22%;
+  --field-2: 90 26% 28%;
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  /* A bare `grid` has one implicit auto column that can grow past the viewport; make it shrinkable. */
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background font-sans text-base leading-relaxed text-foreground antialiased;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+  h1, h2, h3, h4 {
+    @apply font-bold tracking-tight;
+    text-wrap: balance;
+  }
+  h1 { @apply text-2xl md:text-3xl; }
+  h2 { @apply text-xl md:text-2xl; }
+  h3 { @apply text-lg; }
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+  ::selection {
+    background: hsl(var(--primary) / 0.28);
+  }
+  input, select, textarea, button {
+    font: inherit;
+  }
+  img, video, svg {
+    max-width: 100%;
+  }
+}
+
+@layer components {
+  .page-pad { @apply px-4 md:px-6 lg:px-8; }
+  .tap { min-height: 44px; min-width: 44px; }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .scroll-x {
+    @apply relative flex gap-3 overflow-x-auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: 1rem;
+  }
+  .scroll-x::-webkit-scrollbar { display: none; }
+  .scroll-x > * { scroll-snap-align: start; flex-shrink: 0; }
+  .skeleton {
+    @apply relative overflow-hidden rounded-xl bg-muted;
+  }
+  .skeleton::after {
+    content: "";
+    @apply absolute inset-0 animate-shimmer;
+    background: linear-gradient(90deg, transparent, hsl(var(--foreground) / 0.07), transparent);
+    transform: translateX(-100%);
+  }
+  .reels-snap {
+    scroll-snap-type: y mandatory;
+    overscroll-behavior-y: contain;
+  }
+  .reels-snap > * { scroll-snap-align: start; scroll-snap-stop: always; }
+}
+
+/* Optimistic "pop" feedback on like / save toggles */
+@keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.28); } 100% { transform: scale(1); } }
+.pop { animation: pop 0.28s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Increased-contrast preference: strengthen borders */
+@media (prefers-contrast: more) {
+  :root[data-theme][data-mode="light"] { --border: 0 0% 40%; --input: 0 0% 30%; }
+  :root[data-theme][data-mode="dark"] { --border: 0 0% 62%; --input: 0 0% 70%; }
+}
+
+/* Fixed-colour artwork (cows, tractors, flowers…) is dimmed in dark mode so it never glares. */
+:root { --scene-fixed: 1; }
+:root[data-mode="dark"] { --scene-fixed: 0.74; }

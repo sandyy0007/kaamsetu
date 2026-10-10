@@ -1,0 +1,68 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# KaamSetu — Render Blueprint Specification (render.yaml)
+# Deploys Next.js 15 Web Service + Managed PostgreSQL Database on Render
+# Docs: https://render.com/docs/blueprint-spec
+# ═════════════════════════════════════════════════════════════════════════════
+
+services:
+  - type: web
+    name: kaamsetu-web
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npx prisma migrate deploy && npm start
+    healthCheckPath: /api/healthz
+    autoDeploy: true
+    envVars:
+      # Application Environment
+      - key: NODE_ENV
+        value: production
+      - key: DEMO_MODE
+        value: "false"
+      - key: NEXT_PUBLIC_DEMO_MODE
+        value: "false"
+      - key: OTP_DEV_MODE
+        value: "false"
+
+      # PostgreSQL Database (automatically linked from managed database below)
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kaamsetu-db
+          property: connectionString
+
+      # Secure 256-bit random session secret generated automatically by Render
+      - key: SESSION_SECRET
+        generateValue: true
+
+      # Public App URL — set to your Render service URL (e.g. https://kaamsetu-web.onrender.com)
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+
+      # Storage Provider: "local" (ephemeral disk) or "s3" (recommended for user uploads)
+      - key: STORAGE_PROVIDER
+        value: local
+
+      # SMS Provider: "console" (logs OTP to stdout) or "fast2sms" / "msg91" / "twilio"
+      - key: SMS_PROVIDER
+        value: console
+
+      # Push Notification Provider: "none" | "webpush" | "fcm"
+      - key: PUSH_PROVIDER
+        value: none
+
+      # Maps Provider: "static" (district centroids with privacy jitter) | "google" | "mapbox"
+      - key: MAPS_PROVIDER
+        value: static
+
+      # AI Provider: "rules" (offline bilingual router) | "openai-compatible"
+      - key: AI_PROVIDER
+        value: rules
+
+databases:
+  - name: kaamsetu-db
+    plan: free
+    region: singapore
+    databaseName: kaamsetu
+    user: kaamsetu
+

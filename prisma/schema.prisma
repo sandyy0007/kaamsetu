@@ -1,0 +1,1380 @@
+// KaamSetu (formerly KisanSetu) — production relational schema (PostgreSQL).
+// The demo build runs on an in-memory store with the same shapes (src/types/domain.ts).
+// Every row has `isDemo` so seed data can be removed with a single DELETE ... WHERE isDemo.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────── Enums ───────────────────────────
+enum Role {
+  FARMER
+  BUYER
+  EXPERT
+  GOVERNMENT
+  FPO
+  PROFESSIONAL
+  ADMIN
+}
+
+enum Visibility {
+  PRIVATE
+  CONNECTIONS
+  BUYERS
+  FPO
+  PUBLIC
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum Season {
+  Rabi
+  Kharif
+  Zaid
+}
+
+enum Unit {
+  QUINTAL
+  KG
+  TONNE
+}
+
+enum CropStatus {
+  PLANNED
+  GROWING
+  HARVESTED
+  SOLD
+}
+
+enum ExpenseCategory {
+  SEED
+  FERTILIZER
+  IRRIGATION
+  LABOUR
+  PESTICIDE
+  MACHINERY
+  OTHER
+}
+
+enum ListingStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  CLOSED
+}
+
+enum RequirementStatus {
+  OPEN
+  FULFILLED
+  CLOSED
+}
+
+enum EnquiryStatus {
+  NEW
+  REPLIED
+  CLOSED
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+}
+
+enum PostKind {
+  POST
+  TIP
+  ANNOUNCEMENT
+  EVENT
+  STORY
+  MARKET
+  WEATHER
+  QUESTION
+  EXPERT_ANSWER
+  WORK
+  SKILL
+  OPPORTUNITY
+  TUTORIAL
+  SERVICE
+}
+
+enum TargetType {
+  POST
+  REEL
+  COMMENT
+  QUESTION
+}
+
+enum SavedTarget {
+  POST
+  REEL
+  LISTING
+  SCHEME
+  EVENT
+  FARMER
+  PROFESSIONAL
+  WORK
+  SERVICE
+}
+
+enum CommunityKind {
+  CROP
+  LOCATION
+  METHOD
+  LIVESTOCK
+  MACHINERY
+  PROFESSION
+}
+
+enum CommunityRole {
+  MEMBER
+  MODERATOR
+}
+
+enum SchemeCategory {
+  SCHEME
+  SUBSIDY
+  INSURANCE
+  CREDIT
+  TRAINING
+  NOTIFICATION
+  ALERT
+}
+
+enum LiveStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+}
+
+enum ModuleKind {
+  VIDEO
+  ARTICLE
+  QUIZ
+}
+
+enum QuestionStatus {
+  OPEN
+  ANSWERED
+}
+
+enum NotificationType {
+  GOVERNMENT
+  EVENT
+  ENQUIRY
+  EXPERT
+  COMMUNITY
+  CROP
+  LEARNING
+  MARKET
+  WEATHER
+  FOLLOW
+  COMMENT
+  LIKE
+  AI
+  SERVICE
+  WORK
+}
+
+enum VerificationKind {
+  FARMER
+  BUYER
+  EXPERT
+  ORGANIZATION
+  FPO
+  PROFESSIONAL
+  BUSINESS
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ReportStatus {
+  OPEN
+  ACTIONED
+  DISMISSED
+}
+
+enum BlockKind {
+  BLOCK
+  MUTE
+}
+
+enum HealthKind {
+  ARTICLE
+  VIDEO
+  CONTACT
+  FACILITY
+}
+
+enum RateUnit {
+  HOUR
+  DAY
+  ACRE
+}
+
+enum AIRole {
+  USER
+  ASSISTANT
+}
+
+// ─────────────────────────── Identity ───────────────────────────
+model User {
+  id               String     @id @default(cuid())
+  role             Role
+  name             String
+  handle           String     @unique
+  email            String?    @unique
+  phone            String?    @unique
+  passwordHash     String? // scrypt; null for OTP-only accounts
+  headline         String?
+  hue              Int        @default(140)
+  language         String     @default("en")
+  status           UserStatus @default(ACTIVE)
+  // Verification can ONLY be written by the admin review flow.
+  verifiedAt       DateTime?
+  verifiedBy       String?
+  notificationPrefs Json      @default("{}")
+  isDemo           Boolean    @default(false)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  farmer        FarmerProfile?
+  professional  ProfessionalProfile?
+  services      Service[]
+  portfolio     PortfolioEntry[]
+  workHistory   WorkHistoryEntry[]
+  businesses    Business[]
+  workPosted    WorkOpportunity[]
+  applications  WorkApplication[]
+  recommendationsReceived Recommendation[] @relation("recSubject")
+  recommendationsWritten  Recommendation[] @relation("recAuthor")
+  requestsReceived ServiceRequest[] @relation("srProvider")
+  requestsSent     ServiceRequest[] @relation("srRequester")
+  buyer         BuyerProfile?
+  expert        ExpertProfile?
+  organization  Organization?
+  fpo           Fpo?
+  farms         Farm[]
+  crops         Crop[]
+  listings      ProduceListing[]
+  requirements  BuyerRequirement[]
+  posts         Post[]
+  reels         Reel[]
+  comments      Comment[]
+  likes         Like[]
+  saved         SavedItem[]
+  following     Follow[]            @relation("follower")
+  followers     Follow[]            @relation("following")
+  notifications Notification[]
+  sessions      AIConversation[]
+  messagesSent  Message[]
+  reportsFiled  Report[]
+  verifications VerificationRequest[]
+  machinery     MachineryListing[]
+  courseProgress CourseProgress[]
+  certificates  Certificate[]
+  questionsAsked ExpertQuestion[]
+  answersGiven  ExpertAnswer[]
+  memberships   CommunityMember[]
+  participants  ConversationParticipant[]
+  blocks        UserBlock[]         @relation("blocker")
+  blockedBy     UserBlock[]         @relation("blocked")
+  connectionsRequested Connection[] @relation("requester")
+  connectionsReceived  Connection[] @relation("receiver")
+  eventsOrganized Event[]
+  liveHosted    LiveSession[]
+  registrations EventRegistration[]
+
+  @@index([role, status])
+  @@index([isDemo])
+}
+
+model FarmerProfile {
+  userId         String   @id
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  village        String
+  district       String
+  state          String
+  farmingSince   Int
+  languages      String[]
+  specialization String
+  methods        String[]
+  livestock      String[]
+  story          String   @default("")
+  skills         String[]
+  interests      String[]
+  certifications Json     @default("[]")
+  achievements   Json     @default("[]")
+  portfolio      Json     @default("[]")
+  media          Json     @default("[]")
+  // Granular privacy — enforced server-side in src/server/privacy.ts
+  privacy        Json
+  isDemo         Boolean  @default(false)
+  fpoMemberships FpoMember[]
+
+  @@index([district, state])
+}
+
+model BuyerProfile {
+  userId          String   @id
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName    String
+  industry        String
+  district        String
+  state           String
+  about           String
+  cropsPurchased  String[]
+  website         String?
+  contactOptions  String[]
+  isDemo          Boolean  @default(false)
+
+  @@index([district, state])
+}
+
+model ExpertProfile {
+  userId          String   @id
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category        String
+  qualification   String
+  organization    String
+  specialization  String[]
+  experienceYears Int
+  district        String
+  state           String
+  about           String
+  languages       String[]
+  isDemo          Boolean  @default(false)
+}
+
+model Organization {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  department String
+  website    String
+  district   String?
+  state      String
+  about      String
+  isDemo     Boolean  @default(false)
+  schemes    GovernmentScheme[]
+}
+
+model Fpo {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  district    String
+  state       String
+  about       String
+  crops       String[]
+  foundedYear Int
+  isDemo      Boolean  @default(false)
+  members     FpoMember[]
+  listings    ProduceListing[]
+}
+
+model FpoMember {
+  fpoId    String
+  farmerId String
+  fpo      Fpo           @relation(fields: [fpoId], references: [id], onDelete: Cascade)
+  farmer   FarmerProfile @relation(fields: [farmerId], references: [userId], onDelete: Cascade)
+  joinedAt DateTime      @default(now())
+
+  @@id([fpoId, farmerId])
+  @@index([farmerId])
+}
+
+// ─────────────────────────── Farm management (private) ───────────────────────────
+model Farm {
+  id        String   @id @default(cuid())
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name      String
+  areaAcres Float
+  soil      String
+  irrigation String
+  village   String
+  district  String
+  history   Json     @default("[]")
+  isDemo    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  crops     Crop[]
+  cycles    CropCycle[]
+
+  @@index([ownerId])
+}
+
+model Crop {
+  id                     String     @id @default(cuid())
+  ownerId                String
+  owner                  User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  farmId                 String
+  farm                   Farm       @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  name                   String
+  experienceYears        Int
+  season                 Season
+  areaAcres              Float
+  method                 String
+  typicalYieldQtlPerAcre Float
+  status                 CropStatus @default(PLANNED)
+  isDemo                 Boolean    @default(false)
+  createdAt              DateTime   @default(now())
+  cycles                 CropCycle[]
+
+  @@index([ownerId, status])
+  @@index([name])
+}
+
+model CropCycle {
+  id        String     @id @default(cuid())
+  cropId    String
+  crop      Crop       @relation(fields: [cropId], references: [id], onDelete: Cascade)
+  farmId    String
+  farm      Farm       @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  ownerId   String
+  season    Season
+  year      Int
+  areaAcres Float
+  seed      String?
+  stages    Json // Record<StageKey, {done, date?, note?}>
+  status    CropStatus @default(PLANNED)
+  isDemo    Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  expenses  FarmExpense[]
+  harvests  Harvest[]
+
+  @@index([ownerId, year])
+  @@index([cropId])
+}
+
+model FarmExpense {
+  id       String          @id @default(cuid())
+  cycleId  String
+  cycle    CropCycle       @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  ownerId  String
+  category ExpenseCategory
+  amount   Decimal         @db.Decimal(12, 2)
+  date     DateTime
+  note     String?
+  isDemo   Boolean         @default(false)
+
+  @@index([cycleId])
+  @@index([ownerId, date])
+}
+
+model Harvest {
+  id                 String    @id @default(cuid())
+  cycleId            String
+  cycle              CropCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  ownerId            String
+  date               DateTime
+  quantityQtl        Float
+  soldQtl            Float     @default(0)
+  sellingPricePerQtl Decimal   @db.Decimal(12, 2)
+  isDemo             Boolean   @default(false)
+
+  @@index([cycleId])
+  @@index([ownerId])
+}
+
+// ─────────────────────────── Market ───────────────────────────
+model ProduceListing {
+  id            String        @id @default(cuid())
+  ownerId       String
+  owner         User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  fpoId         String?
+  fpo           Fpo?          @relation(fields: [fpoId], references: [id])
+  crop          String
+  variety       String?
+  quantity      Float
+  unit          Unit
+  expectedPrice Decimal       @db.Decimal(12, 2)
+  village       String?
+  district      String
+  state         String
+  harvestDate   DateTime
+  grade         String
+  method        String
+  organic       Boolean       @default(false)
+  status        ListingStatus @default(AVAILABLE)
+  description   String        @default("")
+  hidden        Boolean       @default(false)
+  isDemo        Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  enquiries     Enquiry[]
+
+  @@index([crop, district])
+  @@index([status, hidden, createdAt])
+  @@index([ownerId])
+}
+
+model BuyerRequirement {
+  id          String            @id @default(cuid())
+  buyerId     String
+  buyer       User              @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  crop        String
+  quantity    Float
+  unit        Unit
+  district    String
+  state       String
+  windowStart DateTime
+  windowEnd   DateTime
+  notes       String            @default("")
+  status      RequirementStatus @default(OPEN)
+  hidden      Boolean           @default(false)
+  isDemo      Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  enquiries   Enquiry[]
+
+  @@index([crop, district, status])
+  @@index([buyerId])
+}
+
+model Enquiry {
+  id             String           @id @default(cuid())
+  listingId      String?
+  listing        ProduceListing?  @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  requirementId  String?
+  requirement    BuyerRequirement? @relation(fields: [requirementId], references: [id], onDelete: SetNull)
+  buyerId        String
+  farmerId       String
+  conversationId String
+  message        String
+  status         EnquiryStatus    @default(NEW)
+  isDemo         Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+
+  @@index([farmerId, status])
+  @@index([buyerId])
+}
+
+// ─────────────────────────── Social ───────────────────────────
+model Follow {
+  followerId  String
+  followingId String
+  follower    User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+  isDemo      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@id([followerId, followingId])
+  @@index([followingId])
+}
+
+model Connection {
+  id          String           @id @default(cuid())
+  requesterId String
+  receiverId  String
+  requester   User             @relation("requester", fields: [requesterId], references: [id], onDelete: Cascade)
+  receiver    User             @relation("receiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  status      ConnectionStatus @default(PENDING)
+  isDemo      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+
+  @@unique([requesterId, receiverId])
+  @@index([receiverId, status])
+}
+
+model Post {
+  id            String     @id @default(cuid())
+  authorId      String
+  author        User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  kind          PostKind   @default(POST)
+  body          String
+  tags          String[]
+  scene         String?
+  imageUrl      String?
+  communityId   String?
+  community     Community? @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  crop          String?
+  district      String?
+  state         String?
+  linkedEventId String?
+  hidden        Boolean    @default(false)
+  isDemo        Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+
+  @@index([createdAt])
+  @@index([authorId, createdAt])
+  @@index([communityId, createdAt])
+  @@index([tags], type: Gin)
+}
+
+model Comment {
+  id         String     @id @default(cuid())
+  targetType TargetType
+  targetId   String
+  authorId   String
+  author     User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body       String
+  isDemo     Boolean    @default(false)
+  createdAt  DateTime   @default(now())
+
+  @@index([targetType, targetId, createdAt])
+}
+
+model Like {
+  userId     String
+  targetType TargetType
+  targetId   String
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isDemo     Boolean    @default(false)
+  createdAt  DateTime   @default(now())
+
+  @@id([userId, targetType, targetId])
+  @@index([targetType, targetId])
+}
+
+model SavedItem {
+  userId     String
+  targetType SavedTarget
+  targetId   String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isDemo     Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+
+  @@id([userId, targetType, targetId])
+}
+
+model Reel {
+  id          String   @id @default(cuid())
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  caption     String
+  category    String
+  tags        String[]
+  scene       String
+  durationSec Int
+  videoUrl    String? // object-storage key / CDN URL
+  posterUrl   String?
+  hidden      Boolean  @default(false)
+  isDemo      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([category, createdAt])
+  @@index([authorId])
+}
+
+model Story {
+  id        String   @id @default(cuid())
+  kind      String
+  title     String
+  body      String
+  authorId  String
+  link      String
+  scene     String
+  isDemo    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+model Community {
+  id          String            @id @default(cuid())
+  name        String            @unique
+  kind        CommunityKind
+  description String
+  scene       String
+  createdBy   String
+  rules       String[]
+  hidden      Boolean           @default(false)
+  isDemo      Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  members     CommunityMember[]
+  posts       Post[]
+}
+
+model CommunityMember {
+  communityId String
+  userId      String
+  community   Community     @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        CommunityRole @default(MEMBER)
+  isDemo      Boolean       @default(false)
+  joinedAt    DateTime      @default(now())
+
+  @@id([communityId, userId])
+  @@index([userId])
+}
+
+// ─────────────────────────── Government, events, live ───────────────────────────
+model GovernmentScheme {
+  id                String         @id @default(cuid())
+  orgId             String
+  org               Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name              String
+  category          SchemeCategory
+  state             String
+  description       String
+  eligibility       String[]
+  benefits          String[]
+  documents         String[]
+  applicationMethod String
+  officialSource    String
+  deadline          DateTime?
+  hidden            Boolean        @default(false)
+  isDemo            Boolean        @default(false)
+  createdAt         DateTime       @default(now())
+  // KaamSetu: who the entry is for (profession / category ids, or "ALL"; empty = agriculture) and its subject area.
+  audience          String[]
+  topic             String?
+
+  @@index([category, state])
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  organizerId String
+  organizer   User     @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  name        String
+  category    String
+  description String
+  topics      String[]
+  location    String
+  district    String?
+  startsAt    DateTime
+  endsAt      DateTime
+  scene       String
+  hidden      Boolean  @default(false)
+  isDemo      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  registrations EventRegistration[]
+  live        LiveSession[]
+
+  @@index([startsAt])
+}
+
+model EventRegistration {
+  eventId    String
+  userId     String
+  event      Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  registered Boolean @default(false)
+  reminder   Boolean @default(false)
+  isDemo     Boolean @default(false)
+
+  @@id([eventId, userId])
+}
+
+model LiveSession {
+  id           String     @id @default(cuid())
+  eventId      String?
+  event        Event?     @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  hostId       String
+  host         User       @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  title        String
+  description  String
+  status       LiveStatus @default(SCHEDULED)
+  scheduledAt  DateTime
+  viewerCount  Int        @default(0)
+  scene        String
+  streamUrl    String? // HLS/WebRTC URL from the streaming provider
+  hidden       Boolean    @default(false)
+  isDemo       Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  messages     LiveMessage[]
+
+  @@index([status, scheduledAt])
+}
+
+model LiveMessage {
+  id         String      @id @default(cuid())
+  sessionId  String
+  session    LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId     String
+  body       String
+  isQuestion Boolean     @default(false)
+  isDemo     Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+
+  @@index([sessionId, createdAt])
+}
+
+// ─────────────────────────── Learning ───────────────────────────
+model Course {
+  id          String         @id @default(cuid())
+  title       String
+  category    String
+  level       String
+  description String
+  outcomes    String[]
+  authorId    String
+  scene       String
+  // Professions this course is for; empty = general farming content.
+  professionIds String[]
+  hidden      Boolean        @default(false)
+  isDemo      Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  modules     CourseModule[]
+  progress    CourseProgress[]
+  certificates Certificate[]
+
+  @@index([category])
+}
+
+model CourseModule {
+  id          String     @id @default(cuid())
+  courseId    String
+  course      Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  order       Int
+  title       String
+  kind        ModuleKind
+  durationMin Int
+  body        String
+  quiz        Json?
+  isDemo      Boolean    @default(false)
+
+  @@unique([courseId, order])
+}
+
+model CourseProgress {
+  userId             String
+  courseId           String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course             Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  completedModuleIds String[]
+  quizScores         Json     @default("{}")
+  certificateId      String?
+  isDemo             Boolean  @default(false)
+  updatedAt          DateTime @updatedAt
+
+  @@id([userId, courseId])
+}
+
+model Certificate {
+  id       String   @id @default(cuid())
+  userId   String
+  courseId String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  code     String   @unique
+  isDemo   Boolean  @default(false)
+  issuedAt DateTime @default(now())
+
+  @@unique([userId, courseId])
+}
+
+// ─────────────────────────── Experts Q&A ───────────────────────────
+model ExpertQuestion {
+  id        String         @id @default(cuid())
+  askerId   String
+  asker     User           @relation(fields: [askerId], references: [id], onDelete: Cascade)
+  category  String
+  crop      String?
+  district  String?
+  body      String
+  imageUrl  String?
+  expertId  String?
+  status    QuestionStatus @default(OPEN)
+  hidden    Boolean        @default(false)
+  isDemo    Boolean        @default(false)
+  createdAt DateTime       @default(now())
+  answers   ExpertAnswer[]
+
+  @@index([status, createdAt])
+  @@index([expertId, status])
+}
+
+model ExpertAnswer {
+  id         String         @id @default(cuid())
+  questionId String
+  question   ExpertQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  expertId   String
+  expert     User           @relation(fields: [expertId], references: [id], onDelete: Cascade)
+  body       String
+  helpful    Int            @default(0)
+  isDemo     Boolean        @default(false)
+  createdAt  DateTime       @default(now())
+
+  @@index([questionId])
+}
+
+// ─────────────────────────── Notifications & messaging ───────────────────────────
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String
+  link      String
+  read      Boolean          @default(false)
+  isDemo    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, read, createdAt])
+}
+
+model Conversation {
+  id           String                    @id @default(cuid())
+  context      Json?
+  isDemo       Boolean                   @default(false)
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  conversationId String
+  userId         String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadAt     DateTime?
+
+  @@id([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  body           String
+  attachments    Json         @default("[]")
+  readBy         String[]
+  isDemo         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+// ─────────────────────────── Trust & safety ───────────────────────────
+model VerificationRequest {
+  id             String           @id @default(cuid())
+  // Business verification targets a Business row rather than the person.
+  targetId       String?
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind           VerificationKind
+  note           String
+  documentLabels String[] // labels only; files stay in private object storage
+  status         RequestStatus    @default(PENDING)
+  reviewedBy     String?
+  reviewNote     String?
+  isDemo         Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+
+  @@index([status, createdAt])
+}
+
+model Report {
+  id         String       @id @default(cuid())
+  reporterId String
+  reporter   User         @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType String
+  targetId   String
+  reason     String
+  details    String?
+  status     ReportStatus @default(OPEN)
+  isDemo     Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+
+  @@index([status, createdAt])
+  @@index([targetType, targetId])
+}
+
+model UserBlock {
+  userId   String
+  targetId String
+  user     User      @relation("blocker", fields: [userId], references: [id], onDelete: Cascade)
+  target   User      @relation("blocked", fields: [targetId], references: [id], onDelete: Cascade)
+  kind     BlockKind
+  isDemo   Boolean   @default(false)
+
+  @@id([userId, targetId])
+}
+
+// ─────────────────────────── Health, machinery, AI ───────────────────────────
+model HealthResource {
+  id        String     @id @default(cuid())
+  topic     String
+  kind      HealthKind
+  title     String
+  summary   String
+  steps     String[]
+  emergency Boolean    @default(false)
+  scene     String
+  phone     String?
+  hidden    Boolean    @default(false)
+  isDemo    Boolean    @default(false)
+
+  @@index([topic])
+}
+
+model MachineryListing {
+  id          String   @id @default(cuid())
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  type        String
+  name        String
+  district    String
+  state       String
+  available   Boolean  @default(true)
+  rate        Decimal  @db.Decimal(12, 2)
+  rateUnit    RateUnit
+  description String
+  hidden      Boolean  @default(false)
+  isDemo      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([type, district])
+}
+
+model AIConversation {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isDemo    Boolean     @default(false)
+  createdAt DateTime    @default(now())
+  messages  AIMessage[]
+
+  @@index([userId, createdAt])
+}
+
+model AIMessage {
+  id             String         @id @default(cuid())
+  conversationId String
+  conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           AIRole
+  content        String
+  actions        Json           @default("[]")
+  followUps      String[]
+  isDemo         Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+
+// ═════════════════════════════════════════════════════════════════════════
+// KaamSetu — universal professional layer (additive; no existing table is altered destructively)
+//   User → ProfessionalProfile → Profession.  FarmerProfile/Farm/Crop/… are kept as the farming extension.
+//   ProfessionalProfile.userId = User.id = FarmerProfile.userId, so every old id and link still resolves.
+// ═════════════════════════════════════════════════════════════════════════
+enum ModerationStatus {
+  ACTIVE
+  PENDING
+  REJECTED
+}
+
+enum AvailabilityStatus {
+  AVAILABLE
+  BUSY
+  OPEN_TO_WORK
+  NOT_AVAILABLE
+}
+
+enum ServicePriceType {
+  FIXED
+  HOURLY
+  DAILY
+  PER_VISIT
+  MONTHLY
+  NEGOTIABLE
+}
+
+enum ServiceRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  AWAITING_CONFIRMATION
+  COMPLETED
+}
+
+enum WorkOpportunityKind {
+  JOB
+  DAILY
+  CONTRACT
+  SEASONAL
+  FREELANCE
+  SERVICE_REQUEST
+  APPRENTICESHIP
+  TRAINING
+}
+
+enum WorkStatus {
+  OPEN
+  CLOSED
+  FILLED
+}
+
+enum ApplicationStatus {
+  APPLIED
+  SHORTLISTED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum WorkKind {
+  EMPLOYMENT
+  SELF_EMPLOYED
+  FAMILY
+  INDEPENDENT
+  SEASONAL
+  CONTRACT
+  APPRENTICESHIP
+}
+
+model ProfessionCategory {
+  id          String       @id
+  name        String
+  nameHi      String
+  emoji       String
+  sortOrder   Int          @default(0)
+  isDemo      Boolean      @default(false)
+  professions Profession[]
+}
+
+model Profession {
+  id                String             @id @default(cuid())
+  categoryId        String
+  category          ProfessionCategory @relation(fields: [categoryId], references: [id])
+  name              String
+  nameHi            String             @default("")
+  emoji             String             @default("")
+  synonyms          String[]
+  suggestedSkills   String[]
+  suggestedServices String[]
+  // Profession-specific profile fields: [{ key, label, type, options? }]
+  attributes        Json               @default("[]")
+  dashboard         String             @default("GENERAL")
+  // Only "Farmer" unlocks farms / crops / produce.
+  farmModules       Boolean            @default(false)
+  status            ModerationStatus   @default(ACTIVE)
+  custom            Boolean            @default(false)
+  createdBy         String?
+  isDemo            Boolean            @default(false)
+  profiles          ProfessionalProfile[]
+
+  @@index([categoryId, status])
+}
+
+model Skill {
+  id            String           @id @default(cuid())
+  name          String           @unique
+  professionIds String[]
+  status        ModerationStatus @default(ACTIVE)
+  isDemo        Boolean          @default(false)
+}
+
+model ProfessionalProfile {
+  userId                 String             @id
+  user                   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  professionId           String
+  profession             Profession         @relation(fields: [professionId], references: [id])
+  secondaryProfessionIds String[]
+  customProfession       String?
+  about                  String             @default("")
+  startedYear            Int
+  // [{ name, level, years?, verified? }] — `verified` is writable only by admins.
+  skills                 Json               @default("[]")
+  languages              String[]
+  attributes             Json               @default("{}")
+  village                String?
+  district               String             @default("")
+  state                  String             @default("Rajasthan")
+  serviceRadiusKm        Int                @default(25)
+  serviceAreas           String[]
+  availabilityStatus     AvailabilityStatus @default(OPEN_TO_WORK)
+  availability           Json               @default("{}")
+  certifications         Json               @default("[]")
+  achievements           Json               @default("[]")
+  // Same Visibility model as FarmerProfile.privacy; enforced in src/server/privacy.ts
+  privacy                Json
+  businessId             String?
+  isDemo                 Boolean            @default(false)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  @@index([professionId])
+  @@index([district, state])
+}
+
+model Service {
+  id           String           @id @default(cuid())
+  ownerId      String
+  owner        User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name         String
+  description  String
+  price        Int?
+  priceType    ServicePriceType
+  areas        String[]
+  availability String           @default("")
+  media        Json             @default("[]")
+  active       Boolean          @default(true)
+  hidden       Boolean          @default(false)
+  isDemo       Boolean          @default(false)
+  createdAt    DateTime         @default(now())
+  requests     ServiceRequest[]
+
+  @@index([ownerId])
+}
+
+// No payments: a request is accepted/rejected, then the two people talk in Messages.
+model ServiceRequest {
+  id             String               @id @default(cuid())
+  serviceId      String
+  service        Service              @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  providerId     String
+  provider       User                 @relation("srProvider", fields: [providerId], references: [id], onDelete: Cascade)
+  requesterId    String
+  requester      User                 @relation("srRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  date           DateTime
+  village        String?
+  district       String
+  state          String
+  description    String
+  status         ServiceRequestStatus @default(PENDING)
+  conversationId String?
+  isDemo         Boolean              @default(false)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@index([providerId, status])
+  @@index([requesterId, status])
+}
+
+model PortfolioEntry {
+  id          String   @id @default(cuid())
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  category    String
+  date        DateTime
+  skillsUsed  String[]
+  media       Json     @default("[]")
+  imageUrl    String?
+  videoUrl    String?
+  meta        Json?
+  hidden      Boolean  @default(false)
+  isDemo      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([ownerId])
+}
+
+model WorkHistoryEntry {
+  id           String   @id @default(cuid())
+  ownerId      String
+  owner        User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  role         String
+  organization String
+  kind         WorkKind
+  location     String   @default("")
+  startDate    String // YYYY-MM
+  endDate      String? // YYYY-MM; null = current
+  description  String   @default("")
+  skills       String[]
+  isDemo       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([ownerId])
+}
+
+model Recommendation {
+  id                  String   @id @default(cuid())
+  subjectId           String
+  subject             User     @relation("recSubject", fields: [subjectId], references: [id], onDelete: Cascade)
+  authorId            String
+  author              User     @relation("recAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  relationship        String
+  body                String
+  skill               String?
+  // Set server-side only: author and subject share a completed job / accepted application.
+  interactionVerified Boolean  @default(false)
+  hidden              Boolean  @default(false)
+  isDemo              Boolean  @default(false)
+  createdAt           DateTime @default(now())
+
+  @@unique([subjectId, authorId])
+}
+
+model WorkOpportunity {
+  id            String              @id @default(cuid())
+  posterId      String
+  poster        User                @relation(fields: [posterId], references: [id], onDelete: Cascade)
+  businessId    String?
+  title         String
+  description   String
+  kind          WorkOpportunityKind
+  professionIds String[]
+  skills        String[]
+  openings      Int                 @default(1)
+  village       String?
+  district      String
+  state         String
+  startDate     DateTime?
+  mode          String              @default("ONSITE")
+  payMin        Int?
+  payMax        Int?
+  payUnit       String              @default("NEGOTIABLE")
+  duration      String?
+  contactMethod String              @default("IN_APP")
+  status        WorkStatus          @default(OPEN)
+  hidden        Boolean             @default(false)
+  isDemo        Boolean             @default(false)
+  createdAt     DateTime            @default(now())
+  applications  WorkApplication[]
+
+  @@index([status, district])
+  @@index([posterId])
+}
+
+model WorkApplication {
+  id             String            @id @default(cuid())
+  opportunityId  String
+  opportunity    WorkOpportunity   @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  applicantId    String
+  applicant      User              @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  note           String            @default("")
+  status         ApplicationStatus @default(APPLIED)
+  conversationId String?
+  isDemo         Boolean           @default(false)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@unique([opportunityId, applicantId])
+}
+
+model Business {
+  id            String   @id @default(cuid())
+  ownerId       String
+  owner         User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name          String
+  kind          String
+  about         String
+  services      String[]
+  professionIds String[]
+  district      String
+  state         String
+  website       String?
+  // Written by the admin review flow only.
+  verifiedAt    DateTime?
+  verifiedBy    String?
+  hidden        Boolean  @default(false)
+  isDemo        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([ownerId])
+  @@index([district])
+}
