@@ -54,6 +54,10 @@ export function route(method: Method, pattern: string, handler: Handler, opts: R
 const LIMITS = { default: { max: 240, windowMs: 60_000 }, auth: { max: 12, windowMs: 60_000 } } as const;
 const hits = new Map<string, { count: number; reset: number }>();
 
+export function resetRateLimits() {
+  hits.clear();
+}
+
 function rateLimit(ip: string, bucket: keyof typeof LIMITS) {
   const key = `${bucket}:${ip}`;
   const now = Date.now();

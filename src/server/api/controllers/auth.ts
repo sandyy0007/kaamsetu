@@ -18,6 +18,7 @@ export function buildMe(d: Db, u: User): Me {
     ...userSummary(d, u),
     email: u.email,
     phone: u.phone,
+    phoneVerified: u.phoneVerified !== false,
     language: u.language,
     notificationPrefs: u.notificationPrefs,
     personalization: u.personalization,
@@ -203,6 +204,7 @@ route("PUT", "/me/notification-prefs", async (c) => {
   const u = requireUser(c.user);
   const input = await c.body(notificationPrefsSchema);
   for (const key of Object.keys(u.notificationPrefs) as (keyof typeof u.notificationPrefs)[]) {
+    if (key.startsWith("_")) continue;
     if (typeof input[key] === "boolean") u.notificationPrefs[key] = input[key]!;
   }
   persist();

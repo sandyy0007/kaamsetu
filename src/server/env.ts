@@ -13,6 +13,8 @@ const schema = z.object({
   DATABASE_URL: z.string().optional(),
   OTP_DEV_MODE: bool,
   OTP_TTL_SECONDS: z.coerce.number().default(300),
+  AUTH_TESTING_MODE: bool,
+  TEST_ACCOUNT_PHONES: z.string().optional(),
   SMS_PROVIDER: z.enum(["console", "fast2sms", "msg91", "twilio"]).default("console"),
   FAST2SMS_API_KEY: z.string().optional(),
   MSG91_AUTH_KEY: z.string().optional(),
@@ -54,6 +56,10 @@ export type Env = z.infer<typeof schema>;
 
 let cached: Env | null = null;
 
+export function resetEnvCache() {
+  cached = null;
+}
+
 /** Validated server environment. Secrets are read here only — never from client code. */
 export function env(): Env {
   if (cached) return cached;
@@ -70,6 +76,11 @@ export function env(): Env {
   }
   if (isProd && parsed.OTP_DEV_MODE) {
     throw new Error("OTP_DEV_MODE must be false in production. Real SMS delivery gateway is strictly required.");
+  }
+  if (isProd && parsed.AUTH_TESTING_MODE) {
+    console.warn(
+      "[SECURITY WARNING] AUTH_TESTING_MODE is active in production. Unverified testing account registration is permitted without SMS. Sensitive features remain restricted. Set AUTH_TESTING_MODE=false once SMS provider is configured."
+    );
   }
   cached = parsed;
   return cached;

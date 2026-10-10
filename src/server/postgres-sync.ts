@@ -186,6 +186,7 @@ export async function loadDbFromPostgres(): Promise<Db> {
       status: u.status as any,
       language: u.language as any,
       notificationPrefs: (u.notificationPrefs as any) || {},
+      phoneVerified: (u.notificationPrefs as any)?._phoneVerified !== undefined ? Boolean((u.notificationPrefs as any)._phoneVerified) : true,
       personalization: true,
       createdAt: u.createdAt.toISOString(),
       isDemo: u.isDemo,
@@ -708,7 +709,7 @@ export async function syncDbToPostgres(d: Db): Promise<void> {
     }
 
     for (const u of d.users) {
-      const fp = `${u.id}:${u.status}:${u.name}:${u.email}:${u.phone}:${u.headline}`;
+      const fp = `${u.id}:${u.status}:${u.name}:${u.email}:${u.phone}:${u.phoneVerified}:${u.headline}`;
       if (syncedFingerprints.get(`user:${u.id}`) === fp) continue;
 
       await prisma.user.upsert({
@@ -727,7 +728,7 @@ export async function syncDbToPostgres(d: Db): Promise<void> {
           status: u.status as any,
           verifiedAt: u.verifiedAt ? new Date(u.verifiedAt) : null,
           verifiedBy: u.verifiedBy ?? null,
-          notificationPrefs: u.notificationPrefs as any,
+          notificationPrefs: { ...(u.notificationPrefs as any), _phoneVerified: u.phoneVerified !== false } as any,
           isDemo: u.isDemo,
           createdAt: new Date(u.createdAt),
         },
@@ -743,7 +744,7 @@ export async function syncDbToPostgres(d: Db): Promise<void> {
           status: u.status as any,
           verifiedAt: u.verifiedAt ? new Date(u.verifiedAt) : null,
           verifiedBy: u.verifiedBy ?? null,
-          notificationPrefs: u.notificationPrefs as any,
+          notificationPrefs: { ...(u.notificationPrefs as any), _phoneVerified: u.phoneVerified !== false } as any,
         },
       });
       syncedFingerprints.set(`user:${u.id}`, fp);

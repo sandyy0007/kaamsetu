@@ -104,6 +104,13 @@ async function deliverOtp(identifier: string, code: string) {
   }
 }
 
+export function isApprovedTestPhone(phoneOrEmail: string): boolean {
+  const allowed = env().TEST_ACCOUNT_PHONES;
+  if (!allowed) return false;
+  const list = allowed.split(",").map((s) => normalizePhone(s.trim())).filter(Boolean);
+  return list.includes(normalizePhone(phoneOrEmail));
+}
+
 export async function createOtpChallenge(identifier: string, pending?: OtpChallenge["pending"]) {
   const d = db();
   d.otpChallenges = d.otpChallenges.filter((c) => c.expiresAt > Date.now());
@@ -119,8 +126,30 @@ export async function createOtpChallenge(identifier: string, pending?: OtpChalle
     attempts: 0,
     pending,
   });
-  await deliverOtp(identifier, code);
-  return { challengeId: id, devCode: env().OTP_DEV_MODE ? code : undefined };
+
+  let deliverError: Error | null = null;
+  try {
+    await deliverOtp(identifier, code);
+  } catch (err) {
+    deliverError = err as Error;
+  }
+
+  const isTesting = env().AUTH_TESTING_MODE;
+  const isApproved = isApprovedTestPhone(identifier);
+  // Only provide devCode if:
+  // - Local dev mode (OTP_DEV_MODE), OR
+  // - Testing mode AND (pending registration payload exists OR this is an approved test phone)
+  const allowDevCode = env().OTP_DEV_MODE || (isTesting && (!!pending || isApproved));
+
+  if (deliverError) {
+    if (allowDevCode) {
+      console.warn(`[auth:testing] SMS delivery bypassed for ${identifier}: ${deliverError.message}`);
+    } else {
+      throw deliverError;
+    }
+  }
+
+  return { challengeId: id, devCode: allowDevCode ? code : undefined };
 }
 
 export function consumeOtp(challengeId: string, code: string): User {
@@ -141,13 +170,24 @@ export function consumeOtp(challengeId: string, code: string): User {
     return existing;
   }
   if (!challenge.pending) throw badRequest("No account found. Please register first.");
-  return createUser(challenge.pending);
+  return createUser({
+    ...challenge.pending,
+    phoneVerified: challenge.pending.phoneVerified ?? (env().AUTH_TESTING_MODE ? false : true),
+  });
 }
 
 // ───────────── users ─────────────
-export function createUser(p: NonNullable<OtpChallenge["pending"]>): User {
+export function createUser(p: NonNullable<OtpChallenge["pending"]> & { phoneVerified?: boolean }): User {
   const d = db();
   const district = p.district ?? "";
+  const isTesting = env().AUTH_TESTING_MODE;
+  const phoneVerified = p.phoneVerified !== undefined ? p.phoneVerified : !isTesting;
+
+  const notificationPrefs = {
+    ...defaultNotificationPrefs(),
+    _phoneVerified: phoneVerified,
+  } as unknown as User["notificationPrefs"];
+
   const user: User = {
     id: newId("u"),
     role: p.role,
@@ -155,11 +195,12 @@ export function createUser(p: NonNullable<OtpChallenge["pending"]>): User {
     handle: uniqueHandle(d, p.name),
     email: p.email,
     phone: p.phone,
+    phoneVerified,
     passwordHash: p.passwordHash,
     hue: randomInt(0, 360),
     status: "ACTIVE",
     language: "hinglish",
-    notificationPrefs: defaultNotificationPrefs(),
+    notificationPrefs,
     personalization: true,
     createdAt: new Date().toISOString(),
     isDemo: false,
@@ -215,6 +256,13 @@ export function registrationPayload(input: { role: Role; name: string; email?: s
   }
   if (input.email && findUserByIdentifier(d, input.email)) throw badRequest("An account with this email already exists. Try signing in.");
   if (input.phone && findUserByIdentifier(d, input.phone)) throw badRequest("An account with this phone already exists. Try signing in.");
+
+  const isTesting = env().AUTH_TESTING_MODE;
+  const isApproved = isApprovedTestPhone(input.phone || input.email || "");
+  if (isTesting && !input.password && !isApproved) {
+    throw badRequest("In testing mode without active SMS delivery, please set a password to allow future sign-ins.");
+  }
+
   return {
     role,
     name: input.name,
@@ -225,11 +273,12 @@ export function registrationPayload(input: { role: Role; name: string; email?: s
     district: Object.keys(RAJASTHAN_DISTRICTS).find((k) => k.toLowerCase() === input.district?.trim().toLowerCase()),
     professionId: role === "PROFESSIONAL" ? input.professionId : undefined,
     customProfession: role === "PROFESSIONAL" && !input.professionId ? input.customProfession : undefined,
+    phoneVerified: isTesting ? false : true,
   };
 }
 
-export function loginWithPassword(email: string, password: string): User {
-  const user = findUserByIdentifier(db(), email);
+export function loginWithPassword(emailOrPhone: string, password: string): User {
+  const user = findUserByIdentifier(db(), emailOrPhone);
   // Always run a verification to keep timing roughly uniform.
   const ok = verifyPassword(password, user?.passwordHash ?? "scrypt$00$00");
   if (!user || !ok) throw unauthorized("Email or password is incorrect.");

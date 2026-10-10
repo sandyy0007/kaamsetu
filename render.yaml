@@ -24,6 +24,8 @@ services:
         value: "false"
       - key: OTP_DEV_MODE
         value: "false"
+      - key: AUTH_TESTING_MODE
+        value: "false"
 
       # PostgreSQL Database (automatically linked from managed database below)
       - key: DATABASE_URL

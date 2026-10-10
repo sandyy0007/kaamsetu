@@ -74,6 +74,7 @@ export interface UserSummary {
 export interface Me extends UserSummary {
   email?: string;
   phone?: string;
+  phoneVerified?: boolean;
   language: Language;
   notificationPrefs: NotificationPrefs;
   personalization: boolean;

@@ -74,7 +74,7 @@ export const registerSchema = z
 
 export const loginPhoneSchema = z.object({ phone: phoneSchema });
 export const loginEmailSchema = z.object({
-  email: z.string().trim().email("Enter a valid email"),
+  email: z.string().trim().min(3, "Enter a valid email or phone number"),
   password: z.string().min(1, "Password is required"),
 });
 export const otpVerifySchema = z.object({

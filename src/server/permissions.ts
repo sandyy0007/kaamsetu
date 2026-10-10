@@ -15,9 +15,22 @@ export function requireUser(user: User | null): User {
   return user;
 }
 
+export const SENSITIVE_CAPABILITIES: Capability[] = [
+  "listing:create",
+  "work:post",
+  "machinery:list",
+  "service:manage",
+  "requirement:create",
+  "scheme:publish",
+  "business:manage",
+];
+
 export function requireCap(user: User | null, cap: Capability): User {
   const u = requireUser(user);
   if (!can(u, cap)) throw forbidden("Your account type cannot do this.");
+  if (u.phoneVerified === false && SENSITIVE_CAPABILITIES.includes(cap)) {
+    throw forbidden("Phone verification is required to perform this action. Your account is in unverified testing mode.");
+  }
   return u;
 }
 

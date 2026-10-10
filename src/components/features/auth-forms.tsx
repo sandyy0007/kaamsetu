@@ -64,8 +64,8 @@ function OtpStep({ challenge, identifier, onVerified, onBack }: { challenge: Cha
         We sent a 6-digit code to <strong className="text-foreground">{identifier}</strong>.
       </p>
       {challenge.devCode && (
-        <Notice tone="warning" title="Development mode">
-          No SMS provider is connected, so your code is shown here: <strong className="font-mono text-base tracking-widest">{challenge.devCode}</strong>
+        <Notice tone="warning" title="Testing verification code">
+          Testing mode active: enter code <strong className="font-mono text-base tracking-widest">{challenge.devCode}</strong> to continue. Phone will remain unverified until SMS gateway is active.
         </Notice>
       )}
       <input type="hidden" {...register("challengeId")} />
@@ -168,8 +168,8 @@ function EmailLogin({ onSignedIn }: { onSignedIn: (me: Me) => void }) {
         }
       })}
     >
-      <Field label="Email" error={formState.errors.email?.message} required>
-        {(a) => <Input {...a} {...register("email")} type="email" autoComplete="email" placeholder="you@example.com" />}
+      <Field label="Email or mobile number" error={formState.errors.email?.message} required>
+        {(a) => <Input {...a} {...register("email")} autoComplete="username" placeholder="you@example.com or 98xxxxxxxx" />}
       </Field>
       <Field label="Password" error={formState.errors.password?.message} required>
         {(a) => <Input {...a} {...register("password")} type="password" autoComplete="current-password" />}
@@ -195,7 +195,7 @@ function LoginInner() {
           onChange={setTab}
           items={[
             { id: "phone", label: "Phone OTP" },
-            { id: "email", label: "Email & password" },
+            { id: "email", label: "Password" },
           ]}
           className="mb-5"
         />
@@ -320,7 +320,7 @@ function RegisterInner() {
           <Field label="District" error={formState.errors.district?.message} hint="Helps us show nearby buyers and events">
             {(a) => <Input {...a} {...register("district")} placeholder="e.g. Churu" />}
           </Field>
-          <Field label="Password (optional)" error={formState.errors.password?.message} hint="Only if you want email sign-in as well">
+          <Field label="Password" error={formState.errors.password?.message} hint="Used to sign in with your phone or email">
             {(a) => <Input {...a} {...register("password")} type="password" autoComplete="new-password" />}
           </Field>
         </div>

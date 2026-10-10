@@ -1,9 +1,10 @@
 import "@/server/api/controllers";
-import { handleRequest } from "@/server/api/router";
+import { handleRequest, resetRateLimits } from "@/server/api/router";
 import { SESSION_COOKIE, signSession } from "@/server/auth";
 import { resetDb } from "@/server/db";
 
 export function fresh() {
+  resetRateLimits();
   return resetDb();
 }
 

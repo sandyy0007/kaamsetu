@@ -42,6 +42,7 @@ export interface User extends Demoable {
   handle: string;
   email?: string;
   phone?: string;
+  phoneVerified?: boolean;
   passwordHash?: string;
   hue: number; // avatar tint
   headline?: string;
@@ -758,7 +759,7 @@ export interface OtpChallenge {
   expiresAt: number;
   attempts: number;
   /** Registration payload held until the OTP is verified. */
-  pending?: { role: Role; name: string; email?: string; phone?: string; passwordHash?: string; professionId?: string; customProfession?: string; district?: string };
+  pending?: { role: Role; name: string; email?: string; phone?: string; phoneVerified?: boolean; passwordHash?: string; professionId?: string; customProfession?: string; district?: string };
 }
 
 export interface Db {
