@@ -82,6 +82,7 @@ export interface Me extends UserSummary {
   unreadMessages: number;
   profileId?: string; // organization/fpo id when applicable
   demoMode: boolean;
+  token?: string;
 }
 
 // ─────────── Social ───────────

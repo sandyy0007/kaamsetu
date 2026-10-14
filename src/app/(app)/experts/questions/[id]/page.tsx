@@ -4,3 +4,7 @@ export default async function QuestionPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   return <QuestionDetail id={id} />;
 }
+
+export async function generateStaticParams() {
+  return [{ id: "_default" }];
+}

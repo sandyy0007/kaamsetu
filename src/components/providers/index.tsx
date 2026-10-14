@@ -5,6 +5,8 @@ import { ThemeProvider } from "./theme";
 import { I18nProvider } from "./i18n";
 import { ToastProvider } from "./toast";
 
+import { BackendStatusBanner } from "@/components/layout/backend-status";
+
 export function Providers({ children }: { children: ReactNode }) {
   const [client] = useState(
     () =>
@@ -16,7 +18,10 @@ export function Providers({ children }: { children: ReactNode }) {
     <QueryClientProvider client={client}>
       <ThemeProvider>
         <I18nProvider>
-          <ToastProvider>{children}</ToastProvider>
+          <ToastProvider>
+            <BackendStatusBanner />
+            {children}
+          </ToastProvider>
         </I18nProvider>
       </ThemeProvider>
     </QueryClientProvider>

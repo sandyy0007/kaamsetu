@@ -4,3 +4,7 @@ export default async function ProfessionalPage({ params }: { params: Promise<{ i
   const { id } = await params;
   return <ProfessionalProfileView id={id} />;
 }
+
+export async function generateStaticParams() {
+  return [{ id: "_default" }];
+}

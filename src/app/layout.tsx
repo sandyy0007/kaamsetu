@@ -25,6 +25,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" data-theme="farm" data-mode="light" suppressHydrationWarning>
       <head>
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="/app-config.js" />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body>

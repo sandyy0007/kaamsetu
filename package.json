@@ -13,7 +13,8 @@
     "db:validate": "prisma validate",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
-    "cap:sync-prod": "node scripts/configure-app-url.mjs"
+    "cap:sync-prod": "node scripts/configure-app-url.mjs",
+    "build:cap": "node scripts/build-capacitor.mjs"
   },
   "engines": {
     "node": ">=20"

@@ -4,3 +4,7 @@ export default async function BuyerPage({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   return <BuyerProfileView id={id} />;
 }
+
+export async function generateStaticParams() {
+  return [{ id: "_default" }];
+}

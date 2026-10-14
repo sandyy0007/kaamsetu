@@ -37,10 +37,15 @@ export function readSession(token: string | undefined): string | null {
 }
 
 export function sessionCookie(token: string) {
-  const secure = env().NODE_ENV === "production" ? "; Secure" : "";
-  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_TTL_MS / 1000}${secure}`;
+  const isProd = env().NODE_ENV === "production";
+  const secure = isProd ? "; Secure; SameSite=None; Partitioned" : "; SameSite=Lax";
+  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly${secure}; Max-Age=${SESSION_TTL_MS / 1000}`;
 }
-export const clearSessionCookie = () => `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+export const clearSessionCookie = () => {
+  const isProd = env().NODE_ENV === "production";
+  const secure = isProd ? "; Secure; SameSite=None; Partitioned" : "; SameSite=Lax";
+  return `${SESSION_COOKIE}=; Path=/; HttpOnly${secure}; Max-Age=0`;
+};
 
 export function parseCookies(header: string | null): Record<string, string> {
   return Object.fromEntries(

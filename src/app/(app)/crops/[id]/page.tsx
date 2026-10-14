@@ -9,3 +9,7 @@ export default async function CropPage({ params }: { params: Promise<{ id: strin
     </Suspense>
   );
 }
+
+export async function generateStaticParams() {
+  return [{ id: "_default" }];
+}

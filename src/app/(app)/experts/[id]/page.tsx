@@ -4,3 +4,7 @@ export default async function ExpertPage({ params }: { params: Promise<{ id: str
   const { id } = await params;
   return <ExpertProfileView id={id} />;
 }
+
+export async function generateStaticParams() {
+  return [{ id: "_default" }];
+}

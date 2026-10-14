@@ -5,3 +5,7 @@ export default async function FarmerPage({ params }: { params: Promise<{ id: str
   const { id } = await params;
   redirect(`/professionals/${encodeURIComponent(id)}`);
 }
+
+export async function generateStaticParams() {
+  return [{ id: "_default" }];
+}

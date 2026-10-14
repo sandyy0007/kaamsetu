@@ -26,6 +26,7 @@ export function buildMe(d: Db, u: User): Me {
     unreadMessages: d.messages.filter((m) => myConvos.has(m.conversationId) && m.senderId !== u.id && !m.readBy.includes(u.id)).length,
     profileId: d.organizations.find((o) => o.userId === u.id)?.id ?? d.fpos.find((f) => f.userId === u.id)?.id,
     demoMode: env().DEMO_MODE,
+    token: signSession(u.id),
   };
 }
 
