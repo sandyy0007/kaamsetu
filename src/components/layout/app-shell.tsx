@@ -378,26 +378,28 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="min-w-0">
-        <header className="sticky top-0 z-30 border-b bg-nav/90 backdrop-blur">
-          <div className="page-pad mx-auto flex h-14 max-w-6xl items-center gap-2 md:h-16 md:gap-3">
+        <header className="sticky top-0 z-30 border-b bg-nav/90 backdrop-blur pt-safe">
+          <div className="page-pad mx-auto flex h-14 max-w-6xl items-center gap-1.5 md:h-16 md:gap-3">
             <button
               onClick={() => setMenu(true)}
               aria-label="Open menu"
-              className="tap -ml-2 grid place-items-center rounded-xl text-foreground hover:bg-muted md:hidden"
+              className="tap -ml-1 grid place-items-center rounded-xl text-foreground hover:bg-muted md:hidden"
             >
               <Menu className="h-6 w-6" />
             </button>
             <Logo compact className="md:hidden" />
             <SearchBar className="ml-1 hidden flex-1 md:flex md:max-w-xl" />
-            <div className="ml-auto flex items-center gap-0.5">
+            <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
               <Link
                 href="/explore"
                 aria-label="Search"
-                className="tap grid place-items-center rounded-xl text-muted-foreground hover:bg-muted md:hidden"
+                className="tap hidden place-items-center rounded-xl text-muted-foreground hover:bg-muted sm:grid md:hidden"
               >
                 <Search className="h-5 w-5" />
               </Link>
-              <ThemeToggle />
+              <div className="hidden sm:block">
+                <ThemeToggle />
+              </div>
               <Link
                 href="/ai-assistant"
                 aria-label={t("nav.ai")}
@@ -432,7 +434,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           className={cn(
             bleed
               ? "p-0 md:px-6 md:py-4"
-              : "page-pad mx-auto max-w-6xl py-5 pb-28 md:py-7 md:pb-12",
+              : "page-pad mx-auto max-w-6xl py-4 pb-28 sm:py-5 md:py-7 md:pb-12",
           )}
         >
           {children}
@@ -444,7 +446,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link
             href="/ai-assistant"
             aria-label="Ask the KaamSetu AI assistant"
-            className="fixed bottom-24 right-4 z-30 inline-flex h-12 items-center gap-2 rounded-full bg-accent px-4 text-sm font-bold text-accent-foreground shadow-pop transition-transform hover:scale-105 md:bottom-6 md:right-6"
+            className="fixed bottom-24 right-4 z-30 inline-flex h-11 sm:h-12 items-center gap-2 rounded-full bg-accent px-3.5 sm:px-4 text-xs sm:text-sm font-bold text-accent-foreground shadow-pop transition-transform hover:scale-105 md:bottom-6 md:right-6"
           >
             <Bot className="h-5 w-5" />{" "}
             <span className="hidden sm:inline">Ask AI</span>
@@ -458,6 +460,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="-mx-2">
           <div className="mb-3 px-2 md:hidden">
             <SearchBar />
+          </div>
+          <div className="mb-3 flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2 md:hidden">
+            <span className="text-xs font-semibold text-muted-foreground">Theme & Display</span>
+            <ThemeToggle />
           </div>
           <SideNav onNavigate={() => setMenu(false)} />
         </div>

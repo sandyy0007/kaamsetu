@@ -19,11 +19,11 @@ export function AuthFrame({ children }: { children: ReactNode }) {
         </div>
       </aside>
       <main className="flex min-h-dvh flex-col">
-        <div className="page-pad flex h-16 items-center justify-between">
+        <div className="page-pad flex h-14 sm:h-16 pt-safe items-center justify-between">
           <Logo className="lg:invisible" />
           <ThemeToggle />
         </div>
-        <div className="page-pad mx-auto w-full max-w-lg flex-1 pb-12 pt-2">{children}</div>
+        <div className="page-pad mx-auto w-full max-w-lg flex-1 pb-16 pt-2">{children}</div>
       </main>
     </div>
   );

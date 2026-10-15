@@ -28,7 +28,7 @@ export function Popover({ trigger, children, align = "right", label, className }
     <div ref={root} className="relative">
       {trigger({ open, toggle: () => setOpen((o) => !o), props: { "aria-haspopup": "dialog", "aria-expanded": open } })}
       {open && (
-        <div role="dialog" aria-label={label} className={cn("absolute top-full z-50 mt-2 w-72 animate-scale-in rounded-2xl border bg-card p-2 shadow-pop", align === "right" ? "right-0" : "left-0", className)}>
+        <div role="dialog" aria-label={label} className={cn("absolute top-full z-50 mt-2 w-72 max-w-[calc(100vw-1.5rem)] animate-scale-in rounded-2xl border bg-card p-2 shadow-pop", align === "right" ? "right-0" : "left-0", className)}>
           {children(() => setOpen(false))}
         </div>
       )}

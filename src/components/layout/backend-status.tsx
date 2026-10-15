@@ -97,7 +97,7 @@ export function BackendStatusBanner() {
     <div
       role="status"
       aria-live="polite"
-      className="sticky top-0 z-50 flex w-full items-center justify-between gap-3 border-b bg-amber-50 px-4 py-2.5 text-xs text-amber-900 shadow-sm dark:bg-amber-950/80 dark:text-amber-200 dark:border-amber-900/60"
+      className="sticky top-0 z-50 flex w-full items-center justify-between gap-3 border-b bg-amber-50 px-4 pb-2.5 pt-[max(env(safe-area-inset-top,0px),0.625rem)] text-xs text-amber-900 shadow-sm dark:bg-amber-950/80 dark:text-amber-200 dark:border-amber-900/60"
     >
       <div className="flex items-center gap-2">
         {state === "connecting" ? (

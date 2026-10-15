@@ -1,5 +1,6 @@
 "use client";
-import { forwardRef, useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { forwardRef, useId, useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 const base =
@@ -7,6 +8,24 @@ const base =
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input({ className, ...p }, ref) {
   return <input ref={ref} className={cn(base, "min-h-11 py-2", className)} {...p} />;
+});
+
+export const PasswordInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function PasswordInput({ className, ...p }, ref) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="relative">
+      <input ref={ref} type={show ? "text" : "password"} className={cn(base, "min-h-11 py-2 pr-11", className)} {...p} />
+      <button
+        type="button"
+        tabIndex={-1}
+        onClick={() => setShow((v) => !v)}
+        className="tap absolute right-1 top-1/2 -translate-y-1/2 grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
+        aria-label={show ? "Hide password" : "Show password"}
+      >
+        {show ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
+      </button>
+    </div>
+  );
 });
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea({ className, rows = 4, ...p }, ref) {

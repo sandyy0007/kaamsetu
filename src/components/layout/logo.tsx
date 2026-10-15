@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 /** Original mark: a sprout rising from a bridge arch ("setu" = bridge). */
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 40 40" className={cn("h-9 w-9", className)} role="img" aria-label="KaamSetu logo">
+    <svg viewBox="0 0 40 40" className={cn("h-8 w-8 sm:h-9 sm:w-9 shrink-0", className)} role="img" aria-label="KaamSetu logo">
       <rect width="40" height="40" rx="11" style={{ fill: "hsl(var(--primary))" }} />
       <path d="M6 31 Q20 15 34 31" fill="none" strokeWidth="2.6" strokeLinecap="round" style={{ stroke: "hsl(var(--primary-foreground) / 0.9)" }} />
       <path d="M6 31 H34" strokeWidth="2.6" strokeLinecap="round" style={{ stroke: "hsl(var(--primary-foreground) / 0.9)" }} />
@@ -17,9 +17,9 @@ export function LogoMark({ className }: { className?: string }) {
 
 export function Logo({ href = "/", compact, className }: { href?: string; compact?: boolean; className?: string }) {
   return (
-    <Link href={href} className={cn("inline-flex items-center gap-2.5 rounded-xl", className)} aria-label="KaamSetu home">
+    <Link href={href} className={cn("inline-flex items-center gap-2 sm:gap-2.5 rounded-xl shrink-0", className)} aria-label="KaamSetu home">
       <LogoMark />
-      {!compact && <span className="text-xl font-extrabold tracking-tight">KaamSetu</span>}
+      {!compact && <span className="text-lg sm:text-xl font-extrabold tracking-tight">KaamSetu</span>}
     </Link>
   );
 }

@@ -11,7 +11,7 @@ import { useToast } from "@/components/providers/toast";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Field, Input } from "@/components/ui/form";
+import { Field, Input, PasswordInput } from "@/components/ui/form";
 import { Notice } from "@/components/ui/section";
 import { Tabs } from "@/components/ui/tabs";
 import { useGet } from "@/hooks/use-api";
@@ -149,7 +149,98 @@ function PhoneLogin({ onVerified }: { onVerified: (me: Me) => void }) {
   );
 }
 
-function EmailLogin({ onSignedIn }: { onSignedIn: (me: Me) => void }) {
+function ForgotPasswordFlow({ onCancelled, onReset }: { onCancelled: () => void; onReset: (me: Me) => void }) {
+  const [step, setStep] = useState<"request" | "confirm">("request");
+  const [identifier, setIdentifier] = useState("");
+  const [challenge, setChallenge] = useState<Challenge | null>(null);
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
+
+  const reqForm = useForm<{ identifier: string }>({ defaultValues: { identifier: "" } });
+  const confForm = useForm<{ code: string; newPassword: string }>({ defaultValues: { code: "", newPassword: "" } });
+
+  const onRequest = reqForm.handleSubmit(async (v) => {
+    if (!v.identifier.trim()) {
+      reqForm.setError("identifier", { message: "Please enter your mobile number or email" });
+      return;
+    }
+    setBusy(true);
+    try {
+      const c = await api<Challenge>("POST", "/auth/password/reset-request", { identifier: v.identifier.trim() });
+      setChallenge(c);
+      setIdentifier(v.identifier.trim());
+      setStep("confirm");
+    } catch (e) {
+      reqForm.setError("identifier", { message: e instanceof ApiClientError ? e.message : "Account not found" });
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  const onConfirm = confForm.handleSubmit(async (v) => {
+    if (!challenge) return;
+    setBusy(true);
+    try {
+      const me = await api<Me>("POST", "/auth/password/reset-confirm", {
+        challengeId: challenge.challengeId,
+        code: v.code.trim(),
+        newPassword: v.newPassword,
+      });
+      toast({ kind: "success", title: "Password reset successful" });
+      onReset(me);
+    } catch (e) {
+      confForm.setError("code", { message: e instanceof ApiClientError ? e.message : "Could not reset password" });
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  if (step === "confirm" && challenge) {
+    return (
+      <form onSubmit={onConfirm} className="space-y-4" noValidate>
+        <p className="text-sm text-muted-foreground">
+          We sent a reset verification code to <strong className="text-foreground">{identifier}</strong>.
+        </p>
+        {challenge.devCode && (
+          <Notice tone="warning" title="Testing verification code">
+            Testing mode code: <strong className="font-mono text-base tracking-widest">{challenge.devCode}</strong>
+          </Notice>
+        )}
+        <Field label="Enter 6-digit code" error={confForm.formState.errors.code?.message} required>
+          {(a) => <Input {...a} {...confForm.register("code")} inputMode="numeric" maxLength={6} placeholder="••••••" className="text-center text-xl tracking-[0.5em]" data-autofocus />}
+        </Field>
+        <Field label="New password" error={confForm.formState.errors.newPassword?.message} hint="At least 6 characters" required>
+          {(a) => <PasswordInput {...a} {...confForm.register("newPassword")} autoComplete="new-password" />}
+        </Field>
+        <Button type="submit" size="md" className="w-full min-h-11" loading={busy}>
+          Set new password & sign in
+        </Button>
+        <button type="button" onClick={() => setStep("request")} className="tap w-full text-sm font-semibold text-primary hover:underline">
+          Back / use different number
+        </button>
+      </form>
+    );
+  }
+
+  return (
+    <form onSubmit={onRequest} className="space-y-4" noValidate>
+      <p className="text-sm text-muted-foreground">
+        Enter the phone number or email registered with your account. We will send a verification code to reset your password.
+      </p>
+      <Field label="Mobile number or email" error={reqForm.formState.errors.identifier?.message} required>
+        {(a) => <Input {...a} {...reqForm.register("identifier")} autoComplete="username" placeholder="98xxxxxxxx or you@example.com" data-autofocus />}
+      </Field>
+      <Button type="submit" size="md" className="w-full min-h-11" loading={busy}>
+        Send reset code
+      </Button>
+      <button type="button" onClick={onCancelled} className="tap w-full text-sm font-semibold text-primary hover:underline">
+        Back to sign in
+      </button>
+    </form>
+  );
+}
+
+function EmailLogin({ onSignedIn, onForgot }: { onSignedIn: (me: Me) => void; onForgot: () => void }) {
   type Form = z.infer<typeof loginEmailSchema>;
   const { register, handleSubmit, formState, setError } = useForm<Form>({ resolver: zodResolver(loginEmailSchema) });
   const [busy, setBusy] = useState(false);
@@ -172,9 +263,22 @@ function EmailLogin({ onSignedIn }: { onSignedIn: (me: Me) => void }) {
         {(a) => <Input {...a} {...register("email")} autoComplete="username" placeholder="you@example.com or 98xxxxxxxx" />}
       </Field>
       <Field label="Password" error={formState.errors.password?.message} required>
-        {(a) => <Input {...a} {...register("password")} type="password" autoComplete="current-password" />}
+        {(a) => (
+          <div className="space-y-1.5">
+            <PasswordInput {...a} {...register("password")} autoComplete="current-password" />
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={onForgot}
+                className="text-xs font-semibold text-primary hover:underline"
+              >
+                Forgot password?
+              </button>
+            </div>
+          </div>
+        )}
       </Field>
-      <Button type="submit" size="lg" className="w-full" loading={busy}>
+      <Button type="submit" size="md" className="w-full min-h-11" loading={busy}>
         <KeyRound className="h-4 w-4" /> Sign in
       </Button>
     </form>
@@ -183,31 +287,48 @@ function EmailLogin({ onSignedIn }: { onSignedIn: (me: Me) => void }) {
 
 function LoginInner() {
   const [tab, setTab] = useState<"phone" | "email">("phone");
+  const [mode, setMode] = useState<"login" | "forgot">("login");
   const after = useAfterAuth();
   return (
     <>
-      <Card className="p-5 md:p-6">
-        <h1 className="text-2xl">Welcome back</h1>
-        <p className="mb-4 mt-1 text-sm text-muted-foreground">Sign in to your profile, work and opportunities.</p>
-        <Tabs
-          label="Sign-in method"
-          value={tab}
-          onChange={setTab}
-          items={[
-            { id: "phone", label: "Phone OTP" },
-            { id: "email", label: "Password" },
-          ]}
-          className="mb-5"
-        />
-        {tab === "phone" ? <PhoneLogin onVerified={(me) => after(me)} /> : <EmailLogin onSignedIn={(me) => after(me)} />}
-        <p className="mt-5 text-center text-sm text-muted-foreground">
-          New to KaamSetu?{" "}
-          <Link href="/register" className="font-semibold text-primary hover:underline">
-            Create an account
-          </Link>
+      <Card className="p-4 sm:p-6 shadow-card">
+        <h1 className="text-xl sm:text-2xl font-bold">
+          {mode === "forgot" ? "Reset your password" : "Welcome back"}
+        </h1>
+        <p className="mb-4 mt-1 text-xs sm:text-sm text-muted-foreground">
+          {mode === "forgot"
+            ? "Recover access to your KaamSetu account"
+            : "Sign in to your profile, work and opportunities."}
         </p>
+        {mode === "forgot" ? (
+          <ForgotPasswordFlow onCancelled={() => setMode("login")} onReset={(me) => after(me)} />
+        ) : (
+          <>
+            <Tabs
+              label="Sign-in method"
+              value={tab}
+              onChange={setTab}
+              items={[
+                { id: "phone", label: "Phone OTP" },
+                { id: "email", label: "Password" },
+              ]}
+              className="mb-5"
+            />
+            {tab === "phone" ? (
+              <PhoneLogin onVerified={(me) => after(me)} />
+            ) : (
+              <EmailLogin onSignedIn={(me) => after(me)} onForgot={() => setMode("forgot")} />
+            )}
+            <p className="mt-5 text-center text-xs sm:text-sm text-muted-foreground">
+              New to KaamSetu?{" "}
+              <Link href="/register" className="font-semibold text-primary hover:underline">
+                Create an account
+              </Link>
+            </p>
+          </>
+        )}
       </Card>
-      <DemoAccounts onSignedIn={(me) => after(me)} />
+      {mode === "login" && <DemoAccounts onSignedIn={(me) => after(me)} />}
     </>
   );
 }
@@ -248,15 +369,27 @@ function RegisterInner() {
   const professionId = watch("professionId");
   const customProfession = watch("customProfession");
 
-  if (challenge) return <Card className="p-5 md:p-6"><h1 className="mb-4 text-2xl">Verify your number</h1><OtpStep challenge={challenge} identifier={challenge.ident} onVerified={(me) => after(me, me.role === "PROFESSIONAL" ? "/profile/create" : undefined)} onBack={() => setChallenge(null)} /></Card>;
+  if (challenge) {
+    return (
+      <Card className="p-4 sm:p-6 shadow-card">
+        <h1 className="mb-4 text-xl sm:text-2xl font-bold">Verify your number</h1>
+        <OtpStep
+          challenge={challenge}
+          identifier={challenge.ident}
+          onVerified={(me) => after(me, me.role === "PROFESSIONAL" ? "/profile/create" : undefined)}
+          onBack={() => setChallenge(null)}
+        />
+      </Card>
+    );
+  }
 
   return (
-    <Card className="p-5 md:p-6">
-      <h1 className="text-2xl">Create your KaamSetu account</h1>
-      <p className="mb-5 mt-1 text-sm text-muted-foreground">Free to join. Your work, your identity, your opportunities. Verified badges are granted only after admin review — never self-assigned.</p>
+    <Card className="p-4 sm:p-6 shadow-card">
+      <h1 className="text-xl sm:text-2xl font-bold">Create your KaamSetu account</h1>
+      <p className="mb-5 mt-1 text-xs sm:text-sm text-muted-foreground">Free to join. Your work, your identity, your opportunities. Verified badges are granted only after admin review — never self-assigned.</p>
       <form
         noValidate
-        className="space-y-5"
+        className="space-y-4 sm:space-y-5"
         onSubmit={handleSubmit(async (v) => {
           setBusy(true);
           try {
@@ -274,13 +407,13 @@ function RegisterInner() {
           <legend className="mb-2 text-sm font-semibold">I am a…</legend>
           <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Account type">
             {ROLES.map((r) => (
-              <button type="button" key={r.id} role="radio" aria-checked={role === r.id} onClick={() => setValue("role", r.id, { shouldValidate: true })} className={cn("flex items-start gap-3 rounded-xl border p-3 text-left transition-colors", role === r.id ? "border-primary bg-primary/8 ring-1 ring-primary" : "hover:bg-muted")}>
+              <button type="button" key={r.id} role="radio" aria-checked={role === r.id} onClick={() => setValue("role", r.id, { shouldValidate: true })} className={cn("flex items-start gap-3 rounded-xl border p-2.5 sm:p-3 text-left transition-colors min-h-12", role === r.id ? "border-primary bg-primary/8 ring-1 ring-primary" : "hover:bg-muted")}>
                 <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-lg", role === r.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
                   <r.icon className="h-5 w-5" aria-hidden />
                 </span>
-                <span>
-                  <span className="block text-sm font-bold">{ROLE_LABEL[r.id]}</span>
-                  <span className="block text-xs text-muted-foreground">{r.blurb}</span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold truncate">{ROLE_LABEL[r.id]}</span>
+                  <span className="block text-xs text-muted-foreground line-clamp-2">{r.blurb}</span>
                 </span>
               </button>
             ))}
@@ -307,7 +440,7 @@ function RegisterInner() {
           </div>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-3.5 sm:gap-4 sm:grid-cols-2">
           <Field label="Full name" error={formState.errors.name?.message} required className="sm:col-span-2">
             {(a) => <Input {...a} {...register("name")} autoComplete="name" placeholder="e.g. Ramesh Choudhary" />}
           </Field>
@@ -321,11 +454,11 @@ function RegisterInner() {
             {(a) => <Input {...a} {...register("district")} placeholder="e.g. Churu" />}
           </Field>
           <Field label="Password" error={formState.errors.password?.message} hint="Used to sign in with your phone or email">
-            {(a) => <Input {...a} {...register("password")} type="password" autoComplete="new-password" />}
+            {(a) => <PasswordInput {...a} {...register("password")} autoComplete="new-password" />}
           </Field>
         </div>
 
-        <Button type="submit" size="lg" className="w-full" loading={busy}>
+        <Button type="submit" size="md" className="w-full min-h-11" loading={busy}>
           <UserRound className="h-4 w-4" /> Continue
         </Button>
         <p className="flex items-start gap-2 text-xs text-muted-foreground">
