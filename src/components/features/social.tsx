@@ -146,7 +146,7 @@ export function PostCard({ post, onDeleted, compact }: { post: PostDTO; onDelete
         <div className="flex items-start justify-between gap-2 p-4 pb-3">
           <UserLine user={post.author} sub={[post.author.headline, post.district].filter(Boolean).join(" · ") || undefined} time={post.createdAt} />
           <div className="flex shrink-0 items-center gap-1">
-            {!post.isOwn && !post.followingAuthor && !compact && <FollowButton userId={post.author.id} following={false} />}
+            {!post.isOwn && !compact && <FollowButton userId={post.author.id} following={post.followingAuthor} />}
             {post.isOwn ? (
               <button onClick={remove} aria-label="Delete post" className="tap grid place-items-center rounded-xl text-muted-foreground hover:text-danger">
                 <Trash2 className="h-4 w-4" />

@@ -684,8 +684,20 @@ export async function loadDbFromPostgres(): Promise<Db> {
     };
   });
 
+  // 17. Follows
+  const follows = await prisma.follow.findMany();
+  d.follows = follows.map((f) => {
+    syncedFingerprints.set(`follow:${f.followerId}:${f.followingId}`, `${f.followerId}:${f.followingId}`);
+    return {
+      followerId: f.followerId,
+      followingId: f.followingId,
+      createdAt: f.createdAt.toISOString(),
+      isDemo: f.isDemo,
+    };
+  });
+
   console.info(
-    `[postgres-sync] Successfully loaded persistent state from PostgreSQL: ${d.users.length} users, ${d.workOpportunities.length} jobs, ${d.services.length} services, ${d.farms.length} farms.`,
+    `[postgres-sync] Successfully loaded persistent state from PostgreSQL: ${d.users.length} users, ${d.workOpportunities.length} jobs, ${d.services.length} services, ${d.farms.length} farms, ${d.follows.length} follows.`,
   );
   return d;
 }
@@ -1414,6 +1426,45 @@ export async function syncDbToPostgres(d: Db): Promise<void> {
         },
       });
       syncedFingerprints.set(`notif:${n.id}`, fp);
+    }
+
+    // ───────────── 15. Follows ─────────────
+    const currentFollows = new Set(d.follows.map((f) => `${f.followerId}:${f.followingId}`));
+    for (const [key] of syncedFingerprints) {
+      if (key.startsWith("follow:")) {
+        const parts = key.slice(7).split(":");
+        const followerId = parts[0];
+        const followingId = parts[1];
+        if (followerId && followingId && !currentFollows.has(`${followerId}:${followingId}`)) {
+          await prisma.follow.deleteMany({
+            where: { followerId, followingId },
+          });
+          syncedFingerprints.delete(key);
+        }
+      }
+    }
+
+    for (const f of d.follows) {
+      if (!currentUsers.has(f.followerId) || !currentUsers.has(f.followingId)) continue;
+      const fp = `${f.followerId}:${f.followingId}`;
+      if (syncedFingerprints.get(`follow:${fp}`) === fp) continue;
+
+      await prisma.follow.upsert({
+        where: {
+          followerId_followingId: {
+            followerId: f.followerId,
+            followingId: f.followingId,
+          },
+        },
+        create: {
+          followerId: f.followerId,
+          followingId: f.followingId,
+          isDemo: f.isDemo,
+          createdAt: new Date(f.createdAt),
+        },
+        update: {},
+      });
+      syncedFingerprints.set(`follow:${fp}`, fp);
     }
   } catch (err) {
     console.error("[postgres-sync] Persistent write failure to PostgreSQL:", err);

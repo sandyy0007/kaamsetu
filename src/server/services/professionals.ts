@@ -21,7 +21,7 @@ import type {
 import { districtDistanceKm, findPlaceInText, RAJASTHAN_DISTRICTS } from "@/lib/geo";
 import { formatNumber, unitLabel } from "@/lib/utils";
 import { areConnected, canSee, isBlockedEitherWay } from "../privacy";
-import { listingVisible, summaryById, userSummary, type View } from "../mappers";
+import { isFollowing, listingVisible, summaryById, userSummary, type View } from "../mappers";
 
 const THIS_YEAR = () => new Date().getFullYear();
 const lower = (s: string | undefined) => (s ?? "").toLowerCase();
@@ -241,6 +241,7 @@ export function professionalCard(v: View, userId: string, near?: string): Profes
     openToWork: pp.availability.status === "OPEN_TO_WORK" || pp.availability.status === "AVAILABLE",
     reputation: { completedJobs: rep.completedJobs, recommendations: rep.recommendations, verifiedSkills: rep.verifiedSkills },
     saved: !!viewer && d.saved.some((s) => s.userId === viewer.id && s.targetType === "PROFESSIONAL" && s.targetId === userId),
+    isFollowing: isFollowing(v, userId),
     isSelf: viewer?.id === userId,
   };
   if (prof.farmModules) {

@@ -343,6 +343,7 @@ export function farmerCard(v: View, userId: string): FarmerCardDTO | null {
       : [],
     fpos: p.fpoIds.map((id) => d.fpos.find((f) => f.id === id)).filter((f): f is NonNullable<typeof f> => !!f).map((f) => ({ id: f.id, userId: f.userId, name: f.name })),
     followers: followerCount(d, userId),
+    isFollowing: isFollowing(v, userId),
     restricted: !visibleProfile,
   };
 }
@@ -359,6 +360,7 @@ export function buyerCard(v: View, userId: string): BuyerCardDTO | null {
     state: p.state,
     cropsPurchased: p.cropsPurchased,
     openRequirements: v.d.requirements.filter((r) => r.buyerId === userId && r.status === "OPEN" && !r.hidden).length,
+    isFollowing: isFollowing(v, userId),
   };
 }
 
@@ -378,6 +380,7 @@ export function expertCard(v: View, userId: string): ExpertCardDTO | null {
     state: p.state,
     followers: followerCount(d, userId),
     answerCount: d.answers.filter((a) => a.expertId === userId).length,
+    isFollowing: isFollowing(v, userId),
   };
 }
 

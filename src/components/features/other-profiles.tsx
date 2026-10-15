@@ -4,11 +4,13 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { EmptyState, QueryBoundary } from "@/components/ui/state";
+import { EmptyState, ErrorState, QueryBoundary } from "@/components/ui/state";
 import { ListSkeleton } from "@/components/ui/skeleton";
 import { Tabs } from "@/components/ui/tabs";
 import { useGet, useSend } from "@/hooks/use-api";
 import { useMe } from "@/hooks/use-me";
+import { useRouteEntityId } from "@/hooks/use-route-entity-id";
+import { ApiClientError } from "@/lib/api";
 import { useToast } from "@/components/providers/toast";
 import { Button } from "@/components/ui/button";
 import type { BuyerProfileDTO, ExpertProfileDTO, OrgProfileDTO } from "@/types/dto";
@@ -18,9 +20,21 @@ import { PersonActions, ProfileHeader, Section, TagList } from "./profile-parts"
 import { UserLine } from "./people";
 import type { SceneKind } from "@/types/domain";
 
-export function BuyerProfileView({ id }: { id: string }) {
-  const q = useGet<BuyerProfileDTO>(`/buyers/${id}`);
+export function BuyerProfileView({ id: propId }: { id?: string }) {
+  const id = useRouteEntityId(propId);
+  const q = useGet<BuyerProfileDTO>(id ? `/buyers/${id}` : null);
   const { data: me } = useMe();
+
+  if (!id) {
+    return (
+      <div className="p-6">
+        <ErrorState
+          title="Buyer not found"
+          error={new ApiClientError(404, { code: "NOT_FOUND", message: "No buyer was specified." })}
+        />
+      </div>
+    );
+  }
   return (
     <QueryBoundary query={q} skeleton={<ListSkeleton count={3} />}>
       {(b) => (
@@ -86,8 +100,20 @@ export function BuyerProfileView({ id }: { id: string }) {
   );
 }
 
-export function ExpertProfileView({ id }: { id: string }) {
-  const q = useGet<ExpertProfileDTO>(`/experts/${id}`);
+export function ExpertProfileView({ id: propId }: { id?: string }) {
+  const id = useRouteEntityId(propId);
+  const q = useGet<ExpertProfileDTO>(id ? `/experts/${id}` : null);
+
+  if (!id) {
+    return (
+      <div className="p-6">
+        <ErrorState
+          title="Expert not found"
+          error={new ApiClientError(404, { code: "NOT_FOUND", message: "No expert was specified." })}
+        />
+      </div>
+    );
+  }
   return (
     <QueryBoundary query={q} skeleton={<ListSkeleton count={3} />}>
       {(e) => (
@@ -154,13 +180,25 @@ export function ExpertProfileView({ id }: { id: string }) {
 
 type OrgTab = "about" | "posts" | "events" | "schemes" | "produce" | "members";
 
-export function OrgProfileView({ id }: { id: string }) {
-  const q = useGet<OrgProfileDTO>(`/orgs/${id}`);
+export function OrgProfileView({ id: propId }: { id?: string }) {
+  const id = useRouteEntityId(propId);
+  const q = useGet<OrgProfileDTO>(id ? `/orgs/${id}` : null);
   const [tab, setTab] = useState<OrgTab>("about");
   const toast = useToast();
-  const join = useSend<void, unknown>("POST", `/fpo/${id}/join`, { invalidate: ["/orgs"], onSuccess: () => toast({ title: "Request sent" }) });
-  const leave = useSend<void, unknown>("DELETE", `/fpo/${id}/join`, { invalidate: ["/orgs"], onSuccess: () => toast({ title: "You left the FPO" }) });
+  const join = useSend<void, unknown>("POST", `/fpo/${id ?? ""}/join`, { invalidate: ["/orgs"], onSuccess: () => toast({ title: "Request sent" }) });
+  const leave = useSend<void, unknown>("DELETE", `/fpo/${id ?? ""}/join`, { invalidate: ["/orgs"], onSuccess: () => toast({ title: "You left the FPO" }) });
   const { data: me } = useMe();
+
+  if (!id) {
+    return (
+      <div className="p-6">
+        <ErrorState
+          title="Organisation not found"
+          error={new ApiClientError(404, { code: "NOT_FOUND", message: "No organisation was specified." })}
+        />
+      </div>
+    );
+  }
   return (
     <QueryBoundary query={q} skeleton={<ListSkeleton count={3} />}>
       {(o) => {

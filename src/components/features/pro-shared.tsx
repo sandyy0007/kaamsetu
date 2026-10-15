@@ -202,7 +202,7 @@ export function ProfessionalCard({ p }: { p: ProfessionalCardDTO }) {
     <Card className="flex flex-col p-4">
       <div className="flex items-start justify-between gap-2">
         <UserLine user={p.user} sub={`${p.profession.emoji} ${label}`} />
-        {!p.isSelf && <FollowButton userId={p.user.id} following={false} />}
+        {!p.isSelf && <FollowButton userId={p.user.id} following={p.isFollowing ?? false} />}
       </div>
       {p.matchReason && <p className="mt-3 rounded-lg bg-primary/8 px-2.5 py-1.5 text-xs font-semibold text-primary">{p.matchReason}</p>}
       <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">

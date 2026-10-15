@@ -384,7 +384,7 @@ route("DELETE", "/fpo/members/:id", (c) => {
 // ───────────── follow / connections ─────────────
 route("POST", "/follow/:id", (c) => {
   const u = requireUser(c.user);
-  const target = c.d.users.find((x) => x.id === c.params.id);
+  const target = c.d.users.find((x) => x.id === c.params.id) || c.d.users.find((x) => x.handle === c.params.id);
   if (!target) throw notFound("User");
   if (target.id === u.id) throw badRequest("You cannot follow yourself.");
   if (isBlockedEitherWay(c.d, u.id, target.id)) throw badRequest("You cannot follow this account.");
@@ -398,9 +398,11 @@ route("POST", "/follow/:id", (c) => {
 
 route("DELETE", "/follow/:id", (c) => {
   const u = requireUser(c.user);
-  c.d.follows = c.d.follows.filter((f) => !(f.followerId === u.id && f.followingId === c.params.id));
+  const target = c.d.users.find((x) => x.id === c.params.id) || c.d.users.find((x) => x.handle === c.params.id);
+  const targetId = target ? target.id : c.params.id!;
+  c.d.follows = c.d.follows.filter((f) => !(f.followerId === u.id && f.followingId === targetId));
   persist();
-  return { following: false, followers: followerCount(c.d, c.params.id!) };
+  return { following: false, followers: followerCount(c.d, targetId) };
 });
 
 route("GET", "/users/:id/network", (c) => {

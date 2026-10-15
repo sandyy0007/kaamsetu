@@ -49,6 +49,24 @@ try {
     console.log("[build-capacitor] Copied public/app-config.js -> out/app-config.js");
   }
 
+  // Ensure every dynamic segment directory in out/ has an index.html alongside _default.html
+  function ensureDynamicRouteIndices(dir) {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        const defaultHtml = path.join(fullPath, "_default.html");
+        const indexHtml = path.join(fullPath, "index.html");
+        if (fs.existsSync(defaultHtml) && !fs.existsSync(indexHtml)) {
+          fs.copyFileSync(defaultHtml, indexHtml);
+          console.log(`[build-capacitor] Created fallback index.html for ${path.relative(outDir, fullPath)}`);
+        }
+        ensureDynamicRouteIndices(fullPath);
+      }
+    }
+  }
+  ensureDynamicRouteIndices(outDir);
+
   console.log("[build-capacitor] Static bundle generated successfully in out/.");
 
   // Sync to Capacitor Android

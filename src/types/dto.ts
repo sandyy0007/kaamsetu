@@ -175,6 +175,7 @@ export interface FarmerCardDTO {
   produce: { id: string; crop: string; quantity: number; unit: Unit }[];
   fpos: { id: string; userId: string; name: string }[];
   followers: number;
+  isFollowing?: boolean;
   distanceKm?: number | null;
   matchReason?: string;
   restricted: boolean;
@@ -256,6 +257,7 @@ export interface BuyerCardDTO {
   state: string;
   cropsPurchased: string[];
   openRequirements: number;
+  isFollowing?: boolean;
 }
 
 export interface BuyerProfileDTO extends BuyerCardDTO {
@@ -278,6 +280,7 @@ export interface ExpertCardDTO {
   state: string;
   followers: number;
   answerCount: number;
+  isFollowing?: boolean;
 }
 
 export interface ExpertProfileDTO extends ExpertCardDTO {
@@ -819,6 +822,7 @@ export interface ProfessionalCardDTO {
   farmer?: { crops: string[]; produce: { crop: string; quantity: number; unit: string }[] };
   business?: { id: string; name: string };
   saved: boolean;
+  isFollowing?: boolean;
   isSelf: boolean;
   /** Why this card matched the search — plain language. */
   matchReason?: string;

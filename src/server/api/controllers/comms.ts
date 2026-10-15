@@ -131,6 +131,14 @@ route("DELETE", "/ai/history", (c) => {
   return { ok: true };
 });
 
+route("POST", "/ai/intent", async (c) => {
+  requireUser(c.user);
+  const { transcript, language } = await c.body(z.object({ transcript: z.string().max(300), language: z.string().optional() }));
+  const { parseLocalVoiceIntent } = await import("@/lib/voice/intent-parser");
+  const intent = parseLocalVoiceIntent(transcript);
+  return { intent, language: language ?? "hi-IN" };
+});
+
 // ───────────── discovery ─────────────
 route("GET", "/opportunities", (c) => {
   requireUser(c.user);

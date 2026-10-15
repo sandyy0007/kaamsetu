@@ -42,7 +42,7 @@ export function FarmerCard({ f }: { f: FarmerCardDTO }) {
     <Card className="flex flex-col p-4">
       <div className="flex items-start justify-between gap-2">
         <UserLine user={f.user} sub={f.specialization} />
-        <FollowButton userId={f.user.id} following={false} />
+        <FollowButton userId={f.user.id} following={f.isFollowing ?? false} />
       </div>
       {f.matchReason && <p className="mt-3 rounded-lg bg-primary/8 px-2.5 py-1.5 text-xs font-semibold text-primary">{f.matchReason}</p>}
       <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
@@ -116,7 +116,7 @@ export function ExpertCard({ e }: { e: ExpertCardDTO }) {
     <Card className="flex flex-col p-4">
       <div className="flex items-start justify-between gap-2">
         <UserLine user={e.user} sub={`${e.category} · ${e.qualification}`} />
-        <FollowButton userId={e.user.id} following={false} />
+        <FollowButton userId={e.user.id} following={e.isFollowing ?? false} />
       </div>
       <p className="mt-3 text-sm text-muted-foreground">
         {e.organization} · {e.district}

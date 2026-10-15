@@ -14,6 +14,7 @@ import {
   Trophy,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Scene } from "@/components/art/scene";
 import { Badge } from "@/components/ui/badge";
@@ -22,9 +23,11 @@ import { Card } from "@/components/ui/card";
 import { Notice } from "@/components/ui/section";
 import { Sheet } from "@/components/ui/sheet";
 import { ListSkeleton } from "@/components/ui/skeleton";
-import { EmptyState, QueryBoundary } from "@/components/ui/state";
+import { EmptyState, ErrorState, QueryBoundary } from "@/components/ui/state";
 import { Tabs } from "@/components/ui/tabs";
 import { useGet } from "@/hooks/use-api";
+import { useRouteEntityId } from "@/hooks/use-route-entity-id";
+import { ApiClientError } from "@/lib/api";
 import { VISIBILITY_LABEL } from "@/lib/constants";
 import { sceneForProfession } from "@/lib/profession-scene";
 import { formatDate } from "@/lib/utils";
@@ -946,8 +949,23 @@ export function ProfessionalProfileBody({ p }: { p: ProfessionalProfileDTO }) {
   );
 }
 
-export function ProfessionalProfileView({ id }: { id: string }) {
-  const q = useGet<ProfessionalProfileDTO>(`/professionals/${id}`);
+export function ProfessionalProfileView({ id: propId }: { id?: string }) {
+  const router = useRouter();
+  const id = useRouteEntityId(propId);
+  const q = useGet<ProfessionalProfileDTO>(id ? `/professionals/${id}` : null);
+
+  if (!id) {
+    return (
+      <div className="p-6">
+        <ErrorState
+          title="Profile not found"
+          error={new ApiClientError(404, { code: "NOT_FOUND", message: "No professional profile was specified." })}
+          onRetry={() => router.back()}
+        />
+      </div>
+    );
+  }
+
   return (
     <QueryBoundary query={q} skeleton={<ListSkeleton count={3} />}>
       {(p) => <ProfessionalProfileBody p={p} />}

@@ -15,6 +15,7 @@ import { ListSkeleton } from "@/components/ui/skeleton";
 import { EmptyState, ErrorState, QueryBoundary } from "@/components/ui/state";
 import { TagInput } from "@/components/ui/tag-input";
 import { flatten, useGet, useInfiniteList, useInvalidate } from "@/hooks/use-api";
+import { useRouteEntityId } from "@/hooks/use-route-entity-id";
 import { useMe } from "@/hooks/use-me";
 import { api, ApiClientError } from "@/lib/api";
 import { roleCan } from "@/lib/capabilities";
@@ -321,8 +322,21 @@ function BusinessDetail({ b }: { b: BusinessDetailDTO }) {
   );
 }
 
-export function BusinessDetailView({ id }: { id: string }) {
-  const q = useGet<BusinessDetailDTO>(`/businesses/${id}`, { staleTime: 0 });
+export function BusinessDetailView({ id: propId }: { id?: string }) {
+  const id = useRouteEntityId(propId);
+  const q = useGet<BusinessDetailDTO>(id ? `/businesses/${id}` : null, { staleTime: 0 });
+
+  if (!id) {
+    return (
+      <div className="p-6">
+        <ErrorState
+          title="Business not found"
+          error={new ApiClientError(404, { code: "NOT_FOUND", message: "No business was specified." })}
+        />
+      </div>
+    );
+  }
+
   return (
     <QueryBoundary query={q} skeleton={<ListSkeleton count={2} />}>
       {(b) => <BusinessDetail b={b} />}

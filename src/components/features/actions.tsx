@@ -40,15 +40,18 @@ export function FollowButton({ userId, following, size = "sm", onChange, classNa
   const [busy, setBusy] = useState(false);
   if (me?.id === userId) return null;
   const toggle = async () => {
-    const next = !on;
+    const prev = on;
+    const next = !prev;
     setOn(next);
     setBusy(true);
     try {
-      await api(next ? "POST" : "DELETE", `/follow/${userId}`);
-      onChange?.(next);
-      void refresh("/farmers", "/buyers", "/experts", "/orgs", "/users", "/feed");
+      const res = await api<{ following: boolean; followers: number }>(next ? "POST" : "DELETE", `/follow/${userId}`);
+      const serverState = res?.following ?? next;
+      setOn(serverState);
+      onChange?.(serverState);
+      void refresh("/professionals", "/farmers", "/buyers", "/experts", "/orgs", "/users", "/feed", "/profile", "/explore");
     } catch (e) {
-      setOn(!next);
+      setOn(prev);
       toast({ kind: "error", title: "Couldn't update follow", description: e instanceof Error ? e.message : undefined });
     } finally {
       setBusy(false);

@@ -8,18 +8,20 @@ import {
   LogOut,
   Menu,
   MessageCircle,
+  Mic,
   Search,
   Settings,
   User as UserIcon,
 } from "lucide-react";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { ThemeToggle } from "@/components/features/theme-toggle";
-import { VoiceButton } from "@/components/features/voice-button";
+import { VoiceSearchModal } from "@/components/features/voice-search-modal";
 import { useI18n } from "@/components/providers/i18n";
 import { Avatar, VerifiedMark } from "@/components/ui/avatar";
 import { Popover } from "@/components/ui/popover";
 import { Sheet } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/state";
 import { useMe } from "@/hooks/use-me";
 import { api } from "@/lib/api";
 import { LANGUAGE_LABEL } from "@/lib/i18n";
@@ -42,40 +44,49 @@ function Badge({ n }: { n: number }) {
 }
 
 function SearchBar({ className }: { className?: string }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const router = useRouter();
   const [q, setQ] = useState("");
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const go = (e?: FormEvent, text = q) => {
     e?.preventDefault();
     const s = text.trim();
     if (s) router.push(`/explore?q=${encodeURIComponent(s)}`);
   };
   return (
-    <form
-      onSubmit={go}
-      role="search"
-      className={cn(
-        "flex items-center rounded-xl border bg-card pl-3 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30",
-        className,
-      )}
-    >
-      <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-      <input
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder={`${t("action.search")} — e.g. Mustard farmers near Churu`}
-        aria-label={t("action.search")}
-        className="min-h-10 min-w-0 flex-1 bg-transparent px-2.5 text-sm outline-none placeholder:text-muted-foreground/80"
+    <>
+      <form
+        onSubmit={go}
+        role="search"
+        className={cn(
+          "flex items-center rounded-xl border bg-card pl-3 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30",
+          className,
+        )}
+      >
+        <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={`${t("action.search")} — e.g. Electrician in Jaipur`}
+          aria-label={t("action.search")}
+          className="min-h-10 min-w-0 flex-1 bg-transparent px-2.5 text-sm outline-none placeholder:text-muted-foreground/80"
+        />
+        <button
+          type="button"
+          onClick={() => setVoiceOpen(true)}
+          aria-label="Search by voice / बोलकर खोजें"
+          title="Voice search"
+          className="tap grid h-10 w-10 place-items-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          <Mic className="h-4 w-4" />
+        </button>
+      </form>
+      <VoiceSearchModal
+        open={voiceOpen}
+        onClose={() => setVoiceOpen(false)}
+        initialLanguage={lang}
       />
-      <VoiceButton
-        label="Search by voice"
-        className="h-10 w-10"
-        onText={(text, final) => {
-          setQ(text);
-          if (final) go(undefined, text);
-        }}
-      />
-    </form>
+    </>
   );
 }
 
@@ -329,7 +340,7 @@ function Splash() {
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { data: me, isLoading, isError } = useMe();
+  const { data: me, isLoading, isError, error, refetch } = useMe();
   const { t, setLang } = useI18n();
   const [menu, setMenu] = useState(false);
   const meId = me?.id;
@@ -345,6 +356,18 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [isLoading, isError, me, pathname, router]);
 
   useEffect(() => setMenu(false), [pathname]);
+
+  if (isError && !me) {
+    return (
+      <div className="grid min-h-dvh place-items-center p-6 bg-background pt-safe pb-safe">
+        <ErrorState
+          error={error}
+          title="Could not connect to KaamSetu"
+          onRetry={() => void refetch()}
+        />
+      </div>
+    );
+  }
 
   if (isLoading || (!me && !isError)) return <Splash />;
   if (!me) return <Splash />;
