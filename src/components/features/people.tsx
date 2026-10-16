@@ -29,7 +29,18 @@ export function UserLine({ user, sub, time, size = "md", className, link = true,
     </>
   );
   return link ? (
-    <Link href={profileHref(user)} className={cn("flex min-w-0 items-center gap-3 rounded-xl", className)}>
+    <Link
+      href={profileHref(user, "UserLine")}
+      onClick={() => {
+        console.log("[KaamSetu:Click:UserLine]", {
+          userId: user.id,
+          name: user.name,
+          role: user.role,
+          href: profileHref(user, "UserLine"),
+        });
+      }}
+      className={cn("flex min-w-0 items-center gap-3 rounded-xl", className)}
+    >
       {inner}
     </Link>
   ) : (
@@ -77,7 +88,18 @@ export function FarmerCard({ f }: { f: FarmerCardDTO }) {
         </p>
       )}
       <div className="mt-auto flex gap-2 pt-4">
-        <Link href={profileHref(f.user)} className="tap inline-flex flex-1 items-center justify-center rounded-xl border px-3 text-sm font-semibold hover:bg-muted">
+        <Link
+          href={profileHref(f.user, "FarmerCard:ViewProfile")}
+          onClick={() => {
+            console.log("[KaamSetu:Click:FarmerCard]", {
+              userId: f.user.id,
+              name: f.user.name,
+              role: f.user.role,
+              href: profileHref(f.user, "FarmerCard:ViewProfile"),
+            });
+          }}
+          className="tap inline-flex flex-1 items-center justify-center rounded-xl border px-3 text-sm font-semibold hover:bg-muted"
+        >
           View profile
         </Link>
         <MessageButton userId={f.user.id} name={f.user.name} context={{ kind: "DIRECT", title: `Message to ${f.user.name}` }} />
@@ -103,7 +125,18 @@ export function BuyerCard({ b }: { b: BuyerCardDTO }) {
       </div>
       <div className="mt-auto flex items-center justify-between pt-4">
         <span className="text-sm font-semibold">{b.openRequirements} open requirement{b.openRequirements === 1 ? "" : "s"}</span>
-        <Link href={profileHref(b.user)} className="tap inline-flex items-center rounded-xl border px-3 text-sm font-semibold hover:bg-muted">
+        <Link
+          href={profileHref(b.user, "BuyerCard:ViewBuyer")}
+          onClick={() => {
+            console.log("[KaamSetu:Click:BuyerCard]", {
+              userId: b.user.id,
+              name: b.user.name,
+              role: b.user.role,
+              href: profileHref(b.user, "BuyerCard:ViewBuyer"),
+            });
+          }}
+          className="tap inline-flex items-center rounded-xl border px-3 text-sm font-semibold hover:bg-muted"
+        >
           View buyer
         </Link>
       </div>
@@ -132,7 +165,18 @@ export function ExpertCard({ e }: { e: ExpertCardDTO }) {
         <span>
           {e.experienceYears} yrs · {e.answerCount} answers
         </span>
-        <Link href={profileHref(e.user)} className="tap inline-flex items-center rounded-xl border px-3 font-semibold text-foreground hover:bg-muted">
+        <Link
+          href={profileHref(e.user, "ExpertCard:ViewExpert")}
+          onClick={() => {
+            console.log("[KaamSetu:Click:ExpertCard]", {
+              userId: e.user.id,
+              name: e.user.name,
+              role: e.user.role,
+              href: profileHref(e.user, "ExpertCard:ViewExpert"),
+            });
+          }}
+          className="tap inline-flex items-center rounded-xl border px-3 font-semibold text-foreground hover:bg-muted"
+        >
           View
         </Link>
       </div>

@@ -30,6 +30,7 @@ import { QuestionCard } from "@/components/features/cards";
 import { ExpertCard, UserLine } from "./people";
 import { ImagePicker } from "./image-picker";
 import { VoiceButton } from "./voice-button";
+import { ExpertProfileView } from "./other-profiles";
 
 function AskSheet({ open, onClose, defaults }: { open: boolean; onClose: () => void; defaults: { crop?: string; expertId?: string } }) {
   const toast = useToast();
@@ -215,6 +216,10 @@ function ExpertsTab() {
 export function ExpertsView() {
   const sp = useSearchParams();
   const router = useRouter();
+  const expertId = sp.get("id");
+  if (expertId) {
+    return <ExpertProfileView id={expertId} />;
+  }
   const tab = sp.get("tab") === "questions" ? "questions" : "experts";
   const setTab = (t: "experts" | "questions") => router.replace(`/experts?tab=${t}`);
   return (

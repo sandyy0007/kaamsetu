@@ -13,8 +13,10 @@ import { DISTRICT_NAMES } from "@/lib/geo";
 import type { BuyerCardDTO, FarmerCardDTO } from "@/types/dto";
 import { FilterPanel, SearchField, ToggleChip, useDebounced } from "./filters";
 import { BuyerCard, FarmerCard } from "./people";
+import { BuyerProfileView } from "./other-profiles";
+import { ProfessionalProfileView } from "./professional-profile";
 
-export function FarmersDiscover() {
+function FarmersDiscoverContent() {
   const sp = useSearchParams();
   const [q, setQ] = useState(sp.get("q") ?? "");
   const [crop, setCrop] = useState(sp.get("crop") ?? "");
@@ -96,7 +98,16 @@ export function FarmersDiscover() {
   );
 }
 
-export function BuyersDiscover() {
+export function FarmersDiscover() {
+  const sp = useSearchParams();
+  const farmerId = sp.get("id");
+  if (farmerId) {
+    return <ProfessionalProfileView id={farmerId} />;
+  }
+  return <FarmersDiscoverContent />;
+}
+
+function BuyersDiscoverContent() {
   const sp = useSearchParams();
   const [q, setQ] = useState(sp.get("q") ?? "");
   const [crop, setCrop] = useState(sp.get("crop") ?? "");
@@ -140,4 +151,13 @@ export function BuyersDiscover() {
       </div>
     </div>
   );
+}
+
+export function BuyersDiscover() {
+  const sp = useSearchParams();
+  const buyerId = sp.get("id");
+  if (buyerId) {
+    return <BuyerProfileView id={buyerId} />;
+  }
+  return <BuyersDiscoverContent />;
 }

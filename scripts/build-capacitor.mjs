@@ -49,23 +49,47 @@ try {
     console.log("[build-capacitor] Copied public/app-config.js -> out/app-config.js");
   }
 
-  // Ensure every dynamic segment directory in out/ has an index.html alongside _default.html
-  function ensureDynamicRouteIndices(dir) {
+  // Ensure route indices and dynamic fallbacks exist for Capacitor Android asset loader
+  function ensureRouteIndices(dir) {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
-        const defaultHtml = path.join(fullPath, "_default.html");
         const indexHtml = path.join(fullPath, "index.html");
+        const indexTxt = path.join(fullPath, "index.txt");
+
+        // 1. Sibling HTML: if out/foo/ is a directory and out/foo.html exists, copy to out/foo/index.html
+        const siblingHtml = path.join(dir, `${entry.name}.html`);
+        if (fs.existsSync(siblingHtml) && !fs.existsSync(indexHtml)) {
+          fs.copyFileSync(siblingHtml, indexHtml);
+          console.log(`[build-capacitor] Created ${path.relative(outDir, indexHtml)} from sibling ${entry.name}.html`);
+        }
+
+        // Sibling TXT (Next.js flight data): if out/foo.txt exists, copy to out/foo/index.txt
+        const siblingTxt = path.join(dir, `${entry.name}.txt`);
+        if (fs.existsSync(siblingTxt) && !fs.existsSync(indexTxt)) {
+          fs.copyFileSync(siblingTxt, indexTxt);
+          console.log(`[build-capacitor] Created ${path.relative(outDir, indexTxt)} from sibling ${entry.name}.txt`);
+        }
+
+        // 2. Dynamic route fallbacks: _default.html -> index.html
+        const defaultHtml = path.join(fullPath, "_default.html");
         if (fs.existsSync(defaultHtml) && !fs.existsSync(indexHtml)) {
           fs.copyFileSync(defaultHtml, indexHtml);
           console.log(`[build-capacitor] Created fallback index.html for ${path.relative(outDir, fullPath)}`);
         }
-        ensureDynamicRouteIndices(fullPath);
+
+        const defaultTxt = path.join(fullPath, "_default.txt");
+        if (fs.existsSync(defaultTxt) && !fs.existsSync(indexTxt)) {
+          fs.copyFileSync(defaultTxt, indexTxt);
+          console.log(`[build-capacitor] Created fallback index.txt for ${path.relative(outDir, fullPath)}`);
+        }
+
+        ensureRouteIndices(fullPath);
       }
     }
   }
-  ensureDynamicRouteIndices(outDir);
+  ensureRouteIndices(outDir);
 
   console.log("[build-capacitor] Static bundle generated successfully in out/.");
 

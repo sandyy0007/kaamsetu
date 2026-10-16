@@ -247,7 +247,18 @@ export function ProfessionalCard({ p }: { p: ProfessionalCardDTO }) {
       )}
       <ReputationFacts r={{ ...p.reputation }} className="mt-3" />
       <div className="mt-auto flex flex-wrap gap-2 pt-4">
-        <Link href={profileHref(p.user)} className="tap inline-flex flex-1 items-center justify-center rounded-xl border px-3 text-sm font-semibold hover:bg-muted">
+        <Link
+          href={profileHref(p.user, "ProfessionalCard:ViewProfile")}
+          onClick={() => {
+            console.log("[KaamSetu:Click:ProfessionalCard]", {
+              userId: p.user.id,
+              name: p.user.name,
+              role: p.user.role,
+              href: profileHref(p.user, "ProfessionalCard:ViewProfile"),
+            });
+          }}
+          className="tap inline-flex flex-1 items-center justify-center rounded-xl border px-3 text-sm font-semibold hover:bg-muted"
+        >
           View profile
         </Link>
         {!p.isSelf && <RequestServiceButton providerName={p.user.name} services={p.services} />}

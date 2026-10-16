@@ -132,18 +132,53 @@ export function AppEntry() {
     const native = isCapacitorApp();
     setIsNative(native);
 
-    // If native app loaded a non-root route through SPA fallback, forward to it
-    if (native && typeof window !== "undefined" && window.location.pathname !== "/") {
-      router.replace(window.location.pathname + window.location.search + window.location.hash);
-    }
-  }, [router]);
+    if (typeof window !== "undefined") {
+      const pathname = window.location.pathname;
+      const search = window.location.search;
+      const hash = window.location.hash;
 
-  useEffect(() => {
-    // If running in native Android and user is authenticated, go straight to /home
-    if (isNative && !isLoading && me) {
-      router.replace("/home");
+      console.log("[KaamSetu:AppEntry]", {
+        pathname,
+        search,
+        isNative: native,
+        isLoading,
+        hasMe: !!me,
+      });
+
+      if (native && !isLoading) {
+        // ONLY redirect to /home if user loaded the root path ("/" or "/index.html" or empty)
+        if (pathname === "/" || pathname === "" || pathname === "/index.html") {
+          if (me) {
+            console.log("[KaamSetu:AppEntry] Authenticated at root -> routing to /home");
+            router.replace("/home");
+          }
+        } else {
+          // A non-root route was loaded via SPA fallback!
+          console.log("[KaamSetu:AppEntry] Forwarding fallback route to:", pathname);
+          // If pathname is /professionals/:id, normalize to /professionals?id=:id
+          const proMatch = pathname.match(/^\/professionals\/([^/?#]+)/);
+          const farmerMatch = pathname.match(/^\/farmers\/([^/?#]+)/);
+          const buyerMatch = pathname.match(/^\/buyers\/([^/?#]+)/);
+          const expertMatch = pathname.match(/^\/experts\/([^/?#]+)/);
+          const orgMatch = pathname.match(/^\/orgs\/([^/?#]+)/);
+
+          if (proMatch && proMatch[1] !== "_default" && proMatch[1] !== "index") {
+            router.replace(`/professionals?id=${encodeURIComponent(proMatch[1])}${search ? `&${search.slice(1)}` : ""}${hash}`);
+          } else if (farmerMatch && farmerMatch[1] !== "_default" && farmerMatch[1] !== "index") {
+            router.replace(`/professionals?id=${encodeURIComponent(farmerMatch[1])}${search ? `&${search.slice(1)}` : ""}${hash}`);
+          } else if (buyerMatch && buyerMatch[1] !== "_default" && buyerMatch[1] !== "index") {
+            router.replace(`/buyers?id=${encodeURIComponent(buyerMatch[1])}${search ? `&${search.slice(1)}` : ""}${hash}`);
+          } else if (expertMatch && expertMatch[1] !== "_default" && expertMatch[1] !== "index") {
+            router.replace(`/experts?id=${encodeURIComponent(expertMatch[1])}${search ? `&${search.slice(1)}` : ""}${hash}`);
+          } else if (orgMatch && orgMatch[1] !== "_default" && orgMatch[1] !== "index") {
+            router.replace(`/orgs?id=${encodeURIComponent(orgMatch[1])}${search ? `&${search.slice(1)}` : ""}${hash}`);
+          } else {
+            router.replace(pathname + search + hash);
+          }
+        }
+      }
     }
-  }, [isNative, isLoading, me, router]);
+  }, [isLoading, me, router]);
 
   // While detecting platform or loading initial session state
   if (isNative === null || (isNative && isLoading)) {

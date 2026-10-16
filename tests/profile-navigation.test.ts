@@ -271,4 +271,17 @@ describe("Profile Navigation & Data Isolation Tests", () => {
       expect(res.status).toBe(200);
     }
   });
+
+  it("TEST M: profileHref generates static export compatible URLs across all roles", async () => {
+    const { profileHref } = await import("@/lib/links");
+    expect(profileHref({ id: "u_worker_1", role: "PROFESSIONAL" })).toBe("/professionals?id=u_worker_1");
+    expect(profileHref({ id: "u_farmer_1", role: "FARMER" })).toBe("/professionals?id=u_farmer_1");
+    expect(profileHref({ id: "u_buyer_1", role: "BUYER" })).toBe("/buyers?id=u_buyer_1");
+    expect(profileHref({ id: "u_expert_1", role: "EXPERT" })).toBe("/experts?id=u_expert_1");
+    expect(profileHref({ id: "u_org_1", role: "FPO" })).toBe("/orgs?id=u_org_1");
+    expect(profileHref({ id: "u_gov_1", role: "GOVERNMENT" })).toBe("/orgs?id=u_gov_1");
+    expect(profileHref(null)).toBe("/professionals");
+    expect(profileHref(undefined)).toBe("/professionals");
+    expect(profileHref({ role: "PROFESSIONAL" })).toBe("/professionals");
+  });
 });
