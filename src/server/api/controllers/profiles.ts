@@ -57,11 +57,15 @@ function connectionIds(d: Db, id: string): Set<string> {
   return ids;
 }
 
-export function farmerProfileDTO(v: View, userId: string): FarmerProfileDTO | null {
+export function farmerProfileDTO(v: View, identifier: string): FarmerProfileDTO | null {
   const { d, viewer } = v;
-  const user = d.users.find((u) => u.id === userId);
+  if (!identifier) return null;
+  const clean = decodeURIComponent(identifier).trim();
+  const user = d.users.find((u) => u.id === clean || (u.handle && u.handle.toLowerCase() === clean.toLowerCase()));
+  if (!user) return null;
+  const userId = user.id;
   const p = d.farmerProfiles.find((x) => x.userId === userId);
-  if (!user || !p) return null;
+  if (!p) return null;
   if (viewer && isBlockedEitherWay(d, viewer.id, userId)) return null;
   if (user.status !== "ACTIVE" && viewer?.id !== userId && viewer?.role !== "ADMIN") return null;
   const isSelf = viewer?.id === userId;
@@ -169,20 +173,29 @@ route("GET", "/farmers", (c) => {
     minQty: q.get("minQty") ? Number(q.get("minQty")) : undefined,
   });
   return paginate(items, c);
-});
+}, { auth: "optional" });
 
 route("GET", "/farmers/:id", (c) => {
-  const dto = farmerProfileDTO(view(c), c.params.id!);
+  const raw = c.params.id;
+  if (!raw || raw === "_default" || raw === "_default.html" || raw === "index.html") {
+    throw badRequest("A valid farmer identifier is required.");
+  }
+  const id = raw === "me" ? requireUser(c.user).id : raw;
+  const dto = farmerProfileDTO(view(c), id);
   if (!dto) throw notFound("Farmer");
   return dto;
-});
+}, { auth: "optional" });
+
+import { professionalProfileDTO } from "./professionals";
 
 route("GET", "/profile/me", (c) => {
   const u = requireUser(c.user);
   const v = view(c);
-  if (u.role === "FARMER") return { role: u.role, farmer: farmerProfileDTO(v, u.id) };
+  if (u.role === "PROFESSIONAL") return { role: u.role, professional: professionalProfileDTO(v, u.id) };
+  if (u.role === "FARMER") return { role: u.role, farmer: farmerProfileDTO(v, u.id), professional: professionalProfileDTO(v, u.id) };
   if (u.role === "BUYER") return { role: u.role, buyer: buyerProfileDTO(v, u.id) };
   if (u.role === "EXPERT") return { role: u.role, expert: expertProfileDTO(v, u.id) };
+  if (u.role === "ADMIN") return { role: u.role, admin: true };
   return { role: u.role, org: orgProfileDTO(v, u.id) };
 });
 
@@ -197,8 +210,14 @@ route("PATCH", "/profile/farmer", async (c) => {
 });
 
 // ───────────── buyers ─────────────
-function buyerProfileDTO(v: View, userId: string) {
+function buyerProfileDTO(v: View, identifier: string) {
   const { d, viewer } = v;
+  if (!identifier) return null;
+  const clean = decodeURIComponent(identifier).trim();
+  if (clean === "_default" || clean === "index" || clean === "index.html" || clean === "_default.html") return null;
+  const user = d.users.find((u) => u.id === clean || (u.handle && u.handle.toLowerCase() === clean.toLowerCase()));
+  if (!user) return null;
+  const userId = user.id;
   const card = buyerCard(v, userId);
   const p = d.buyerProfiles.find((x) => x.userId === userId);
   if (!card || !p) return null;
@@ -223,13 +242,18 @@ route("GET", "/buyers", (c) => {
     .filter(Boolean)
     .sort((a, b) => Number(b.user.verified) - Number(a.user.verified) || b.openRequirements - a.openRequirements);
   return paginate(items, c);
-});
+}, { auth: "optional" });
 
 route("GET", "/buyers/:id", (c) => {
-  const dto = buyerProfileDTO(view(c), c.params.id!);
+  const raw = c.params.id;
+  if (!raw || raw === "_default" || raw === "_default.html" || raw === "index.html") {
+    throw badRequest("A valid buyer identifier is required.");
+  }
+  const id = raw === "me" ? requireUser(c.user).id : raw;
+  const dto = buyerProfileDTO(view(c), id);
   if (!dto) throw notFound("Buyer");
   return dto;
-});
+}, { auth: "optional" });
 
 route("PATCH", "/profile/buyer", async (c) => {
   const u = requireRole(c.user, "BUYER");
@@ -242,8 +266,14 @@ route("PATCH", "/profile/buyer", async (c) => {
 });
 
 // ───────────── experts ─────────────
-function expertProfileDTO(v: View, userId: string) {
+function expertProfileDTO(v: View, identifier: string) {
   const { d, viewer } = v;
+  if (!identifier) return null;
+  const clean = decodeURIComponent(identifier).trim();
+  if (clean === "_default" || clean === "index" || clean === "index.html" || clean === "_default.html") return null;
+  const user = d.users.find((u) => u.id === clean || (u.handle && u.handle.toLowerCase() === clean.toLowerCase()));
+  if (!user) return null;
+  const userId = user.id;
   const card = expertCard(v, userId);
   const p = d.expertProfiles.find((x) => x.userId === userId);
   if (!card || !p) return null;
@@ -267,13 +297,18 @@ route("GET", "/experts", (c) => {
     .filter((e) => e && (!category || e.category === category) && (!q || `${e.user.name} ${e.category} ${e.specialization.join(" ")} ${e.organization} ${e.district}`.toLowerCase().includes(q)))
     .sort((a, b) => Number(b.user.verified) - Number(a.user.verified) || b.answerCount - a.answerCount);
   return paginate(items, c, 20);
-});
+}, { auth: "optional" });
 
 route("GET", "/experts/:id", (c) => {
-  const dto = expertProfileDTO(view(c), c.params.id!);
+  const raw = c.params.id;
+  if (!raw || raw === "_default" || raw === "_default.html" || raw === "index.html") {
+    throw badRequest("A valid expert identifier is required.");
+  }
+  const id = raw === "me" ? requireUser(c.user).id : raw;
+  const dto = expertProfileDTO(view(c), id);
   if (!dto) throw notFound("Expert");
   return dto;
-});
+}, { auth: "optional" });
 
 route("PATCH", "/profile/expert", async (c) => {
   const u = requireRole(c.user, "EXPERT");
@@ -286,12 +321,18 @@ route("PATCH", "/profile/expert", async (c) => {
 });
 
 // ───────────── organisations & FPOs ─────────────
-function orgProfileDTO(v: View, userId: string): OrgProfileDTO | null {
+function orgProfileDTO(v: View, identifier: string): OrgProfileDTO | null {
   const { d, viewer } = v;
+  if (!identifier) return null;
+  const clean = decodeURIComponent(identifier).trim();
+  if (clean === "_default" || clean === "index" || clean === "index.html" || clean === "_default.html") return null;
+  const user = d.users.find((u) => u.id === clean || (u.handle && u.handle.toLowerCase() === clean.toLowerCase()));
+  const org = d.organizations.find((o) => (user && o.userId === user.id) || o.id === clean || (user && o.id === user.id));
+  const fpo = d.fpos.find((f) => (user && f.userId === user.id) || f.id === clean || (user && f.id === user.id));
+  const userId = user?.id ?? org?.userId ?? fpo?.userId;
+  if (!userId) return null;
   const card = orgCard(v, userId);
   if (!card) return null;
-  const org = d.organizations.find((o) => o.userId === userId);
-  const fpo = d.fpos.find((f) => f.userId === userId);
   const members = fpo ? fpo.memberIds.map((id) => d.users.find((u) => u.id === id)).filter((u): u is User => !!u).map((u) => ({ user: userSummary(d, u) })) : [];
   return {
     ...card,
@@ -309,13 +350,18 @@ route("GET", "/orgs", (c) => {
   const v = view(c);
   const ids = [...(kind === "fpo" ? [] : c.d.organizations.map((o) => o.userId)), ...(kind === "government" ? [] : c.d.fpos.map((f) => f.userId))];
   return ids.map((id) => orgCard(v, id)!).filter(Boolean);
-});
+}, { auth: "optional" });
 
 route("GET", "/orgs/:id", (c) => {
-  const dto = orgProfileDTO(view(c), c.params.id!);
+  const raw = c.params.id;
+  if (!raw || raw === "_default" || raw === "_default.html" || raw === "index.html") {
+    throw badRequest("A valid organisation identifier is required.");
+  }
+  const id = raw === "me" ? requireUser(c.user).id : raw;
+  const dto = orgProfileDTO(view(c), id);
   if (!dto) throw notFound("Organisation");
   return dto;
-});
+}, { auth: "optional" });
 
 route("PATCH", "/profile/org", async (c) => {
   const u = requireRole(c.user, "GOVERNMENT", "FPO");

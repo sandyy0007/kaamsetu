@@ -1,5 +1,5 @@
 "use client";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, usePathname, useSearchParams } from "next/navigation";
 
 const KNOWN_ROUTE_PREFIXES = new Set([
   "professionals",
@@ -18,53 +18,110 @@ const KNOWN_ROUTE_PREFIXES = new Set([
   "farms",
   "communities",
   "questions",
-  "_default",
 ]);
 
+const PLACEHOLDER_TOKENS = new Set([
+  "_default",
+  "default",
+  "index",
+  "undefined",
+  "null",
+  "",
+]);
+
+function cleanSegment(seg: string | undefined): string | null {
+  if (!seg) return null;
+  // Remove file extensions (e.g. "u_ramesh.html" -> "u_ramesh", "index.html" -> "index")
+  const stripped = seg.replace(/\.(html|htm|txt|json)$/i, "").trim();
+  const lower = stripped.toLowerCase();
+  if (PLACEHOLDER_TOKENS.has(lower) || KNOWN_ROUTE_PREFIXES.has(lower)) {
+    return null;
+  }
+  return decodeURIComponent(stripped);
+}
+
+function parseEntityIdFromPath(pathname: string | undefined): string | null {
+  if (!pathname) return null;
+  // Normalize path and strip query/hash
+  const pathWithoutQuery = pathname.split("?")[0].split("#")[0];
+  const segments = pathWithoutQuery.split("/").filter(Boolean);
+  if (segments.length === 0) return null;
+
+  // Pattern 1: /[prefix]/[entityId] or /[prefix]/[entityId]/[subtab]
+  if (KNOWN_ROUTE_PREFIXES.has(segments[0].toLowerCase()) && segments.length >= 2) {
+    const candidate = cleanSegment(segments[1]);
+    if (candidate) return candidate;
+  }
+
+  // Pattern 2: Inspect remaining segments backwards for an entity ID (skipping known prefixes and stubs)
+  for (let i = segments.length - 1; i >= 0; i--) {
+    const candidate = cleanSegment(segments[i]);
+    if (candidate) return candidate;
+  }
+
+  return null;
+}
+
 /**
- * Universal hook to resolve dynamic route entity IDs across Next.js Server Rendering
- * and Capacitor Static HTML exports.
- *
- * In Next.js static exports (output: "export"), generateStaticParams produces stub pages
- * like "/professionals/_default.html". When loaded in client runtime, the actual URL
- * in window.location or searchParams contains the true entity ID.
- *
- * This hook inspects:
- * 1. Client route params (`useParams().id`)
- * 2. Query parameters (`?id=...` or `?profileId=...`)
- * 3. Browser pathname segments (e.g. "/professionals/usr_abc123" -> "usr_abc123")
- * 4. Fallback prop (if not "_default")
+ * Universal hook to resolve dynamic route entity IDs across Next.js Server Components,
+ * Client transitions, and Capacitor Static HTML exports.
  */
 export function useRouteEntityId(initialId?: string): string {
   const routeParams = useParams();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
 
-  // 1. Check useParams
+  // 1. Check explicit prop if valid and non-placeholder
+  const cleanedInitial = cleanSegment(initialId);
+  if (cleanedInitial) {
+    return cleanedInitial;
+  }
+
+  // 2. Check query string (?id=... or ?userId=... or ?profileId=... or ?handle=...)
+  const queryParam =
+    searchParams?.get("id") ||
+    searchParams?.get("userId") ||
+    searchParams?.get("profileId") ||
+    searchParams?.get("handle");
+  const cleanedQuery = cleanSegment(queryParam || undefined);
+  if (cleanedQuery) {
+    return cleanedQuery;
+  }
+
+  // 3. Check client route params (useParams().id)
   const paramId = routeParams?.id;
-  if (typeof paramId === "string" && paramId && paramId !== "_default") {
-    return decodeURIComponent(paramId);
+  if (typeof paramId === "string") {
+    const cleanedParam = cleanSegment(paramId);
+    if (cleanedParam) return cleanedParam;
   }
 
-  // 2. Check query string
-  const queryId = searchParams?.get("id") || searchParams?.get("profileId");
-  if (queryId && queryId !== "_default") {
-    return decodeURIComponent(queryId);
+  // 4. Check reactive Next.js pathname (subscribes to client navigation transitions)
+  const fromPathname = parseEntityIdFromPath(pathname);
+  if (fromPathname) {
+    return fromPathname;
   }
 
-  // 3. Check browser pathname
+  // 5. Fallback to window.location (for cold starts / static Capacitor file load)
   if (typeof window !== "undefined") {
-    const segments = window.location.pathname.split("/").filter(Boolean);
-    const lastSegment = segments[segments.length - 1];
-    if (lastSegment && !KNOWN_ROUTE_PREFIXES.has(lastSegment) && lastSegment !== "_default") {
-      return decodeURIComponent(lastSegment);
+    // Check window.location.search first
+    try {
+      const windowSp = new URLSearchParams(window.location.search);
+      const winQuery =
+        windowSp.get("id") ||
+        windowSp.get("userId") ||
+        windowSp.get("profileId") ||
+        windowSp.get("handle");
+      const cleanedWinQuery = cleanSegment(winQuery || undefined);
+      if (cleanedWinQuery) return cleanedWinQuery;
+    } catch {
+      // Ignore
     }
-  }
 
-  // 4. Fallback to initialId if valid
-  if (initialId && initialId !== "_default") {
-    return initialId;
+    const fromWindowPath = parseEntityIdFromPath(window.location.pathname);
+    if (fromWindowPath) {
+      return fromWindowPath;
+    }
   }
 
   return "";
 }
-

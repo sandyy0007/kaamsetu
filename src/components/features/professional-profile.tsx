@@ -26,6 +26,7 @@ import { ListSkeleton } from "@/components/ui/skeleton";
 import { EmptyState, ErrorState, QueryBoundary } from "@/components/ui/state";
 import { Tabs } from "@/components/ui/tabs";
 import { useGet } from "@/hooks/use-api";
+import { useMe } from "@/hooks/use-me";
 import { useRouteEntityId } from "@/hooks/use-route-entity-id";
 import { ApiClientError } from "@/lib/api";
 import { VISIBILITY_LABEL } from "@/lib/constants";
@@ -952,6 +953,8 @@ export function ProfessionalProfileBody({ p }: { p: ProfessionalProfileDTO }) {
 export function ProfessionalProfileView({ id: propId }: { id?: string }) {
   const router = useRouter();
   const id = useRouteEntityId(propId);
+  const { data: me } = useMe();
+  const isOwnProfile = !!(me && id && (me.id === id || me.handle === id || id === "me"));
   const q = useGet<ProfessionalProfileDTO>(id ? `/professionals/${id}` : null);
 
   if (!id) {
@@ -961,6 +964,19 @@ export function ProfessionalProfileView({ id: propId }: { id?: string }) {
           title="Profile not found"
           error={new ApiClientError(404, { code: "NOT_FOUND", message: "No professional profile was specified." })}
           onRetry={() => router.back()}
+          action={{ label: "Find Professionals", href: "/professionals" }}
+        />
+      </div>
+    );
+  }
+
+  if (q.isError && isOwnProfile && q.error instanceof ApiClientError && q.error.status === 404) {
+    return (
+      <div className="p-6 max-w-lg mx-auto">
+        <EmptyState
+          title="Complete your professional profile"
+          description="Your profile details have not been set up yet. Add your profession, skills, and experience to connect with opportunities."
+          action={{ label: "Set up profile", href: "/profile/create" }}
         />
       </div>
     );

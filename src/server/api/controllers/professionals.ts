@@ -19,7 +19,7 @@ import {
 import { newId } from "../../crypto";
 import { persist } from "../../db";
 import { badRequest, conflict, forbidden, notFound } from "../../errors";
-import { findProfession, resolveCustomProfession, syncProfessionalToExpert, syncProfessionalToFarmer } from "../../migrate";
+import { ensureProfessionalProfile, findProfession, resolveCustomProfession, syncProfessionalToExpert, syncProfessionalToFarmer } from "../../migrate";
 import { followerCount, isFollowing, summaryById, userSummary, type View } from "../../mappers";
 import { requireCap, requireUser } from "../../permissions";
 import { areConnected, canSee, isBlockedEitherWay } from "../../privacy";
@@ -68,12 +68,24 @@ function ownProfile(c: Ctx): { u: User; pp: ProfessionalProfile } {
 }
 
 // ───────────── profile DTO ─────────────
-export function professionalProfileDTO(v: View, userId: string): ProfessionalProfileDTO | null {
+export function professionalProfileDTO(v: View, identifier: string): ProfessionalProfileDTO | null {
   const { d, viewer } = v;
-  const pp = d.professionalProfiles.find((p) => p.userId === userId);
-  const user = d.users.find((u) => u.id === userId);
+  if (!identifier) return null;
+  const clean = decodeURIComponent(identifier).trim();
+  if (clean === "_default" || clean === "index" || clean === "index.html" || clean === "_default.html") {
+    return null;
+  }
+  const user = d.users.find((u) => u.id === clean || (u.handle && u.handle.toLowerCase() === clean.toLowerCase()));
+  if (!user) return null;
+  const userId = user.id;
+
+  // Auto-provision profile record if user is a professional, farmer, or expert
+  let pp = d.professionalProfiles.find((p) => p.userId === userId);
+  if (!pp && (user.role === "PROFESSIONAL" || user.role === "FARMER" || user.role === "EXPERT")) {
+    pp = ensureProfessionalProfile(d, user);
+  }
   const prof = pp && professionOf(d, pp.professionId);
-  if (!pp || !user || !prof) return null;
+  if (!pp || !prof) return null;
   if (viewer && isBlockedEitherWay(d, viewer.id, userId)) return null;
   if (user.status !== "ACTIVE" && viewer?.id !== userId && viewer?.role !== "ADMIN") return null;
 
@@ -167,7 +179,11 @@ route("GET", "/professionals", (c) => {
 }, { auth: "optional" });
 
 route("GET", "/professionals/:id", (c) => {
-  const id = c.params.id === "me" ? requireUser(c.user).id : c.params.id!;
+  const raw = c.params.id;
+  if (!raw || raw === "_default" || raw === "_default.html" || raw === "index.html") {
+    throw badRequest("A valid professional identifier is required.");
+  }
+  const id = raw === "me" ? requireUser(c.user).id : raw;
   const dto = professionalProfileDTO(view(c), id);
   if (!dto) throw notFound("Professional");
   return dto;

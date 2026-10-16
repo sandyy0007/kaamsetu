@@ -26,7 +26,17 @@ export function EmptyState({ title, description, action, icon, compact }: { titl
   );
 }
 
-export function ErrorState({ error, onRetry, title }: { error?: unknown; onRetry?: () => void; title?: string }) {
+export function ErrorState({
+  error,
+  onRetry,
+  title,
+  action,
+}: {
+  error?: unknown;
+  onRetry?: () => void;
+  title?: string;
+  action?: { label: string; href?: string; onClick?: () => void };
+}) {
   const e = error instanceof ApiClientError ? error : null;
   const forbidden = e?.status === 403;
   const missing = e?.status === 404;
@@ -40,16 +50,30 @@ export function ErrorState({ error, onRetry, title }: { error?: unknown; onRetry
       </div>
       <h3 className="text-lg">{heading}</h3>
       <p className="mt-1.5 max-w-sm text-sm text-muted-foreground">{msg}</p>
-      {onRetry && !forbidden && !missing && (
-        <Button className="mt-5" variant="outline" onClick={onRetry}>
-          Try again
-        </Button>
-      )}
-      {(forbidden || missing) && (
-        <ButtonLink className="mt-5" variant="outline" href="/home">
-          Back to Home
-        </ButtonLink>
-      )}
+      <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+        {onRetry && (
+          <Button variant="outline" onClick={onRetry}>
+            Try again
+          </Button>
+        )}
+        {action ? (
+          action.href ? (
+            <ButtonLink variant="outline" href={action.href}>
+              {action.label}
+            </ButtonLink>
+          ) : (
+            <Button variant="outline" onClick={action.onClick}>
+              {action.label}
+            </Button>
+          )
+        ) : (
+          (forbidden || missing) && (
+            <ButtonLink variant="outline" href="/professionals">
+              Explore Profiles
+            </ButtonLink>
+          )
+        )}
+      </div>
     </div>
   );
 }

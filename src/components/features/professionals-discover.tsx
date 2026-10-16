@@ -13,9 +13,9 @@ import { DISTRICT_NAMES } from "@/lib/geo";
 import type { ProfessionalCardDTO } from "@/types/dto";
 import { FilterPanel, SearchField, ToggleChip, useDebounced } from "./filters";
 import { ProfessionalCard, useCatalog } from "./pro-shared";
+import { ProfessionalProfileView } from "./professional-profile";
 
-/** Find Professionals — one discovery page for every profession (farmers included). */
-export function ProfessionalsDiscover() {
+function ProfessionalsDiscoverContent() {
   const sp = useSearchParams();
   const { data: catalog } = useCatalog();
   const [q, setQ] = useState(sp.get("q") ?? "");
@@ -134,4 +134,14 @@ export function ProfessionalsDiscover() {
       )}
     </div>
   );
+}
+
+/** Find Professionals — one discovery page for every profession (farmers included). Supports ?id= query param to display a profile directly. */
+export function ProfessionalsDiscover() {
+  const sp = useSearchParams();
+  const profileId = sp.get("id");
+  if (profileId) {
+    return <ProfessionalProfileView id={profileId} />;
+  }
+  return <ProfessionalsDiscoverContent />;
 }
