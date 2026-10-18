@@ -73,6 +73,27 @@ export function apiUrl(path: string): string {
   return `${base}/api${cleanPath}`;
 }
 
+/**
+ * Resolves a media file path or URL into an accessible URL suitable
+ * for rendering in both web browser and Android WebView (Capacitor) environments.
+ * Relative paths (like `/api/files/...`) are transformed into fully-qualified
+ * backend URLs when running inside Capacitor Android so they never 404 on localhost.
+ */
+export function resolveMediaUrl(url?: string | null): string {
+  if (!url || typeof url !== "string") return "";
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  if (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("data:") ||
+    trimmed.startsWith("blob:")
+  ) {
+    return trimmed;
+  }
+  return apiUrl(trimmed);
+}
+
 export class ApiClientError extends Error {
   status: number;
   code: string;

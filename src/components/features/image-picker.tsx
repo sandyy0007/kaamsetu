@@ -1,7 +1,7 @@
 "use client";
 import { Camera, ImagePlus, Loader2, X } from "lucide-react";
 import { useRef, useState } from "react";
-import { uploadFile } from "@/lib/api";
+import { uploadFile, resolveMediaUrl } from "@/lib/api";
 import { compressImage } from "@/lib/image";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +30,7 @@ export function ImagePicker({ value, onChange, label = "Add a photo", className,
       <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="sr-only" onChange={(e) => void pick(e.target.files?.[0])} aria-label={label} tabIndex={-1} />
       {value ? (
         <div className="relative inline-block">
-          <img src={value} alt="Attached photo" className="h-32 w-auto max-w-full rounded-xl border object-cover" />
+          <img src={resolveMediaUrl(value)} alt="Attached photo" className="h-32 w-auto max-w-full rounded-xl border object-cover" />
           <button type="button" onClick={() => onChange(undefined)} aria-label="Remove photo" className="absolute -right-2 -top-2 grid h-8 w-8 place-items-center rounded-full bg-card shadow-pop hover:bg-muted">
             <X className="h-4 w-4" />
           </button>

@@ -113,34 +113,130 @@ route("PATCH", "/admin/users/:id", async (c) => {
 // ───────────── verification (the ONLY place badges are granted) ─────────────
 route("GET", "/admin/verifications", (c): AdminVerificationRow[] => {
   admin(c);
-  const status = c.query.get("status") ?? "PENDING";
+  const status = c.query.get("status");
   return c.d.verificationRequests
-    .filter((r) => r.status === status)
+    .filter((r) => (!status || r.status === status))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .map((r) => ({ id: r.id, user: summaryById(c.d, r.userId), kind: r.kind, targetName: r.kind === "BUSINESS" ? c.d.businesses.find((b) => b.id === r.targetId)?.name : undefined, note: r.note, documentLabels: r.documentLabels, status: r.status, createdAt: r.createdAt, reviewNote: r.reviewNote }));
+    .map((r) => ({
+      id: r.id,
+      user: summaryById(c.d, r.userId),
+      kind: r.kind,
+      category: r.category,
+      governmentCategory: r.governmentCategory,
+      legalName: r.legalName,
+      website: r.website,
+      orgEmail: r.orgEmail,
+      registrationNumber: r.registrationNumber,
+      challenges: r.challenges?.map((ch) => ({
+        type: ch.type,
+        target: ch.target,
+        status: ch.status,
+        verifiedAt: ch.verifiedAt,
+      })),
+      targetName: r.kind === "BUSINESS" ? c.d.businesses.find((b) => b.id === r.targetId)?.name : undefined,
+      note: r.note,
+      documentLabels: r.documentLabels,
+      status: r.status,
+      createdAt: r.createdAt,
+      reviewNote: r.reviewNote,
+      reviewedBy: r.reviewedBy,
+    }));
 });
 
 route("POST", "/admin/verifications/:id/review", async (c) => {
   const a = admin(c);
-  const req = c.d.verificationRequests.find((r) => r.id === c.params.id && r.status === "PENDING");
+  const req = c.d.verificationRequests.find((r) => r.id === c.params.id);
   if (!req) throw notFound("Request");
-  const { decision, note } = await c.body(verificationReviewSchema);
+  if (req.userId === a.id) {
+    throw badRequest("Admins cannot review their own verification requests.");
+  }
+
+  const input = await c.body(verificationReviewSchema);
+  const { decision, note, badgeType, expiryDays } = input;
+
   req.status = decision;
   req.reviewedBy = a.id;
   req.reviewNote = note;
+  req.updatedAt = new Date().toISOString();
+
+  if (!req.auditTrail) req.auditTrail = [];
+  req.auditTrail.push({
+    id: newId("aud"),
+    action: decision === "NEEDS_MORE_INFORMATION" ? "MORE_INFO_REQUESTED" : decision,
+    actorId: a.id,
+    note,
+    timestamp: new Date().toISOString(),
+  });
+
+  const expiresAt = decision === "APPROVED"
+    ? new Date(Date.now() + (expiryDays ?? 365) * 86_400_000).toISOString()
+    : undefined;
+  req.expiresAt = expiresAt;
+
   const user = c.d.users.find((u) => u.id === req.userId);
+
+  const defaultBadge = req.kind === "BUSINESS"
+    ? "BUSINESS"
+    : req.governmentCategory || req.category === "GOVERNMENT" || user?.role === "GOVERNMENT"
+    ? "GOVERNMENT"
+    : req.category === "ORGANIZATION" || req.kind === "ORGANIZATION" || user?.role === "FPO"
+    ? "ORGANIZATION"
+    : (req.kind === "FARMER" || user?.role === "FARMER")
+    ? "PHONE"
+    : "PROFESSIONAL";
+  const targetBadge = badgeType ?? defaultBadge;
+
   if (req.kind === "BUSINESS") {
     // Business verification marks the business — it never gives the owner a personal badge.
     const biz = c.d.businesses.find((b) => b.id === req.targetId);
-    if (biz && decision === "APPROVED") {
-      biz.verifiedAt = new Date().toISOString();
-      biz.verifiedBy = a.id;
+    if (biz) {
+      if (decision === "APPROVED") {
+        biz.verifiedAt = new Date().toISOString();
+        biz.verifiedBy = a.id;
+      } else if (decision === "REVOKED") {
+        biz.verifiedAt = undefined;
+        biz.verifiedBy = undefined;
+      }
     }
-  } else if (user && decision === "APPROVED") {
-    user.verifiedAt = new Date().toISOString();
-    user.verifiedBy = a.id;
+  } else if (user) {
+    if (decision === "APPROVED") {
+      user.verifiedAt = new Date().toISOString();
+      user.verifiedBy = a.id;
+      user.verificationStatus = "APPROVED";
+      user.verificationBadgeType = targetBadge;
+      user.verificationExpiresAt = expiresAt;
+    } else if (decision === "REVOKED") {
+      user.verifiedAt = undefined;
+      user.verifiedBy = undefined;
+      user.verificationStatus = "REVOKED";
+      user.verificationBadgeType = undefined;
+      user.verificationExpiresAt = undefined;
+    } else if (decision === "REJECTED") {
+      if (!user.verifiedAt) user.verificationStatus = "REJECTED";
+    } else if (decision === "NEEDS_MORE_INFORMATION") {
+      if (!user.verifiedAt) user.verificationStatus = "NEEDS_MORE_INFORMATION";
+    }
   }
-  notify(c.d, req.userId, "GOVERNMENT", decision === "APPROVED" ? "You are now verified" : "Verification request update", decision === "APPROVED" ? "Your verified badge is now visible on your profile." : (note ?? "Your request was not approved. You can submit again with clearer documents."), "/settings");
+
+  const notificationTitle =
+    decision === "APPROVED"
+      ? "Verification approved"
+      : decision === "NEEDS_MORE_INFORMATION"
+      ? "More information needed for verification"
+      : decision === "REVOKED"
+      ? "Verification revoked"
+      : "Verification request not approved";
+
+  const notificationBody =
+    decision === "APPROVED"
+      ? "Your verified badge is now active and visible on your profile."
+      : decision === "NEEDS_MORE_INFORMATION"
+      ? (note ?? "Please review reviewer remarks and upload necessary supporting details in Settings.")
+      : decision === "REVOKED"
+      ? (note ?? "Your verified badge has been revoked.")
+      : (note ?? "Your request was not approved. You can submit again with clearer documents.");
+
+  notify(c.d, req.userId, "GOVERNMENT", notificationTitle, notificationBody, "/settings");
   persist();
   return { ok: true };
 });

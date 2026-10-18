@@ -15,6 +15,7 @@ import { REEL_CATEGORIES } from "@/types/domain";
 import type { ReelDTO } from "@/types/dto";
 import { profileHref } from "@/lib/links";
 import { UserAvatar } from "@/components/ui/avatar";
+import { resolveMediaUrl } from "@/lib/api";
 import { FollowButton, LikeButton, SaveButton, ShareButton } from "./actions";
 import { CommentThread } from "./social";
 import { MessageCircle } from "lucide-react";
@@ -22,25 +23,70 @@ import { MessageCircle } from "lucide-react";
 function ReelSlide({ reel, active, muted, onToggleMute, onComments }: { reel: ReelDTO; active: boolean; muted: boolean; onToggleMute: () => void; onComments: () => void }) {
   const vid = useRef<HTMLVideoElement>(null);
   const [paused, setPaused] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const resolvedUrl = useMemo(() => resolveMediaUrl(reel.videoUrl), [reel.videoUrl]);
+
   useEffect(() => {
     const v = vid.current;
     if (!v) return;
-    if (active && !paused) void v.play().catch(() => undefined);
-    else v.pause();
-  }, [active, paused]);
+    if (active && !paused && !videoError) {
+      v.play().catch((err) => {
+        console.warn("[KaamSetu:Media:AutoPlayBlockedOrFailed]", { reelId: reel.id, error: err });
+      });
+    } else {
+      v.pause();
+    }
+  }, [active, paused, videoError, reel.id]);
+
   useEffect(() => {
-    if (!active) setPaused(false);
+    if (!active) {
+      setPaused(false);
+      setVideoError(false);
+    }
   }, [active]);
+
+  const hasVideo = !!resolvedUrl && !videoError;
+
   return (
     <article data-reel={reel.id} aria-label={`Reel: ${reel.caption}`} className="relative h-full w-full snap-start snap-always overflow-hidden bg-black">
-      {reel.videoUrl ? (
-        <video ref={vid} src={active ? reel.videoUrl : undefined} preload={active ? "auto" : "none"} loop muted={muted} playsInline className="h-full w-full object-cover" onClick={() => setPaused((p) => !p)} />
+      {hasVideo ? (
+        <video
+          ref={vid}
+          src={active ? resolvedUrl : undefined}
+          preload={active ? "auto" : "none"}
+          loop
+          muted={muted}
+          playsInline
+          className="h-full w-full object-cover"
+          onClick={() => setPaused((p) => !p)}
+          onError={() => {
+            console.warn("[KaamSetu:Media:ReelPlaybackError]", {
+              reelId: reel.id,
+              url: resolvedUrl,
+              nativeError: vid.current?.error?.message ?? "Playback error",
+            });
+            setVideoError(true);
+          }}
+        />
       ) : (
         <div className="absolute inset-0" style={{ filter: "brightness(var(--scene-fixed, 1))" }}>
           <Scene kind={reel.scene} />
+          {videoError && (
+            <div className="absolute inset-x-4 top-16 z-20 rounded-xl bg-black/75 p-3 text-center text-xs text-white backdrop-blur">
+              <p className="font-semibold text-warning">Video stream currently unavailable</p>
+              <p className="mt-1 text-white/80">Displaying preview artwork.</p>
+              <button
+                type="button"
+                onClick={() => setVideoError(false)}
+                className="mt-2 inline-flex items-center rounded-lg bg-white/20 px-2.5 py-1 text-xs font-bold text-white hover:bg-white/30"
+              >
+                Retry video
+              </button>
+            </div>
+          )}
         </div>
       )}
-      {reel.videoUrl && paused && (
+      {hasVideo && paused && (
         <span className="pointer-events-none absolute inset-0 grid place-items-center">
           <Play className="h-16 w-16 fill-white text-white drop-shadow" aria-hidden />
         </span>

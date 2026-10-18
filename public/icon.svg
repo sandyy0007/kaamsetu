@@ -1,1 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="11" fill="#1a6b36"/><path d="M6 31 Q20 15 34 31" fill="none" stroke="#f3f7f2" stroke-width="2.6" stroke-linecap="round"/><path d="M6 31 H34" stroke="#f3f7f2" stroke-width="2.6" stroke-linecap="round"/><path d="M20 26 V14" stroke="#f5b82e" stroke-width="2.4" stroke-linecap="round"/><path d="M20 17 C14 17 12 12 13 9 C17 9 20 12 20 17Z" fill="#f5b82e"/><path d="M20 15 C26 15 28 10 27 7 C23 7 20 10 20 15Z" fill="#fff"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="ks-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B192C" />
+      <stop offset="100%" stop-color="#0D9488" />
+    </linearGradient>
+    <linearGradient id="ks-path" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#FCD34D" />
+    </linearGradient>
+    <linearGradient id="ks-teal" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#14B8A6" />
+      <stop offset="100%" stop-color="#5EEAD4" />
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="13" fill="url(#ks-bg)" />
+  <path d="M8 38 C 16 28, 32 28, 40 38" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="3" stroke-linecap="round" />
+  <rect x="11" y="11" width="5.5" height="26" rx="2.75" fill="#FFFFFF" />
+  <path d="M17 24 C 21 24, 27 18, 35 13" fill="none" stroke="url(#ks-path)" stroke-width="5.5" stroke-linecap="round" />
+  <path d="M17 24 C 22 24, 28 30, 36 35" fill="none" stroke="url(#ks-teal)" stroke-width="5.5" stroke-linecap="round" />
+  <circle cx="35" cy="13" r="2.5" fill="#F59E0B" />
+</svg>

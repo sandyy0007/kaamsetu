@@ -41,6 +41,9 @@ import type {
   CommunityKind,
   CourseModule,
   MachineryType,
+  VerificationStatus,
+  VerificationCategory,
+  GovernmentCategory,
 } from "./domain";
 
 export interface ApiError {
@@ -55,6 +58,16 @@ export interface Page<T> {
   total: number;
 }
 
+export type VerificationBadgeType = "PHONE" | "EMAIL" | "BUSINESS" | "ORGANIZATION" | "GOVERNMENT" | "PROFESSIONAL";
+
+export interface VerificationBadgeDTO {
+  type: VerificationBadgeType;
+  label: string;
+  category?: string;
+  verifiedAt?: string;
+  aboutText: string;
+}
+
 export interface UserSummary {
   id: string;
   name: string;
@@ -65,6 +78,7 @@ export interface UserSummary {
   verified: boolean;
   /** Verified label such as "Verified Farmer". Only set when an admin has approved verification. */
   badge?: string;
+  verificationBadge?: VerificationBadgeDTO;
   district?: string;
   /** Profession of a farmer/professional/expert (null for organisations, buyers). */
   profession?: { id: string; name: string; emoji: string };
@@ -703,13 +717,26 @@ export interface AdminVerificationRow {
   id: string;
   user: UserSummary;
   kind: string;
+  category?: VerificationCategory;
+  governmentCategory?: GovernmentCategory;
+  legalName?: string;
+  website?: string;
+  orgEmail?: string;
+  registrationNumber?: string;
+  challenges?: Array<{
+    type: "EMAIL" | "DOMAIN";
+    target: string;
+    status: string;
+    verifiedAt?: string;
+  }>;
   /** For BUSINESS requests: the business being verified (a business badge never becomes a personal badge). */
   targetName?: string;
   note: string;
   documentLabels: string[];
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  status: VerificationStatus;
   createdAt: string;
   reviewNote?: string;
+  reviewedBy?: string;
 }
 
 export interface AdminReportRow {
@@ -736,7 +763,29 @@ export interface AdminContentRow {
 
 export interface VerificationStatusDTO {
   verified: boolean;
-  request?: { id: string; kind: string; status: "PENDING" | "APPROVED" | "REJECTED"; note: string; reviewNote?: string; createdAt: string };
+  status: VerificationStatus;
+  badge?: VerificationBadgeDTO;
+  request?: {
+    id: string;
+    kind: string;
+    category?: string;
+    governmentCategory?: string;
+    legalName?: string;
+    website?: string;
+    orgEmail?: string;
+    registrationNumber?: string;
+    status: VerificationStatus;
+    note: string;
+    reviewNote?: string;
+    challenges?: {
+      type: "EMAIL" | "DOMAIN";
+      target: string;
+      status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
+      expiresAt: string;
+    }[];
+    createdAt: string;
+    updatedAt?: string;
+  };
 }
 
 export type VisibilityValue = Visibility;

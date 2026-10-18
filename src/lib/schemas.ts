@@ -391,7 +391,12 @@ export const verificationRequestSchema = z.object({
   note: text(10, 600, "Note"),
   documentLabels: z.array(z.string().trim().min(2).max(80)).min(1, "List at least one document you can provide").max(6),
 });
-export const verificationReviewSchema = z.object({ decision: z.enum(["APPROVED", "REJECTED"]), note: optionalText(300) });
+export const verificationReviewSchema = z.object({
+  decision: z.enum(["APPROVED", "REJECTED", "NEEDS_MORE_INFORMATION", "REVOKED"]),
+  note: optionalText(500),
+  badgeType: z.enum(["PHONE", "EMAIL", "BUSINESS", "ORGANIZATION", "GOVERNMENT", "PROFESSIONAL"]).optional(),
+  expiryDays: z.number().int().min(1).max(1825).optional(),
+});
 export const reportResolveSchema = z.object({ action: z.enum(["HIDE_CONTENT", "SUSPEND_USER", "DISMISS"]) });
 export const blockSchema = z.object({ targetId: z.string().min(1), kind: z.enum(["BLOCK", "MUTE"]) });
 

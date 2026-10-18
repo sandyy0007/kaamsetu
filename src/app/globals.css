@@ -11,78 +11,78 @@
    Values are HSL channel triplets so Tailwind alpha modifiers work.
    ════════════════════════════════════════════════════════════════════ */
 
-/* ── Farm · Light (default) ── */
+/* ── KaamSetu Brand · Light (default) ── */
 :root,
 :root[data-theme="farm"][data-mode="light"] {
-  --background: 42 38% 96%;
-  --foreground: 150 28% 11%;
+  --background: 210 25% 98%;
+  --foreground: 215 50% 12%;
   --card: 0 0% 100%;
-  --muted: 40 26% 92%;
-  --muted-foreground: 150 9% 35%;
-  --border: 40 20% 85%;
-  --input: 40 18% 78%;
-  --ring: 142 55% 30%;
-  --primary: 142 56% 26%;
+  --muted: 210 20% 93%;
+  --muted-foreground: 215 20% 40%;
+  --border: 210 18% 87%;
+  --input: 210 16% 80%;
+  --ring: 175 84% 32%;
+  --primary: 175 84% 32%;
   --primary-foreground: 0 0% 100%;
-  --accent: 28 52% 36%;
-  --accent-foreground: 0 0% 100%;
-  --highlight: 43 92% 52%;
+  --accent: 38 92% 50%;
+  --accent-foreground: 215 60% 11%;
+  --highlight: 38 92% 50%;
   --success: 142 62% 28%;
-  --warning: 32 92% 29%;
+  --warning: 32 92% 38%;
   --danger: 0 68% 44%;
-  --info: 205 75% 34%;
+  --info: 215 60% 28%;
   --nav: 0 0% 100%;
-  --shadow: 150 30% 12%;
-  --overlay: 150 30% 6%;
-  --chart-1: 142 56% 30%;
-  --chart-2: 28 62% 46%;
-  --chart-3: 205 62% 42%;
-  --chart-4: 43 88% 46%;
+  --shadow: 215 40% 12%;
+  --overlay: 215 50% 6%;
+  --chart-1: 175 84% 32%;
+  --chart-2: 38 92% 50%;
+  --chart-3: 215 60% 28%;
+  --chart-4: 142 56% 30%;
   --chart-5: 340 52% 46%;
-  --sky-1: 38 90% 88%;
-  --sky-2: 190 55% 86%;
-  --sun: 40 100% 62%;
-  --hill-1: 110 28% 62%;
-  --hill-2: 130 34% 46%;
-  --field-1: 140 44% 34%;
-  --field-2: 90 40% 46%;
+  --sky-1: 210 80% 92%;
+  --sky-2: 175 50% 90%;
+  --sun: 38 100% 55%;
+  --hill-1: 175 35% 55%;
+  --hill-2: 215 35% 35%;
+  --field-1: 175 55% 28%;
+  --field-2: 215 45% 22%;
   color-scheme: light;
 }
 
-/* ── Farm · Dark (true dark) ── */
+/* ── KaamSetu Brand · Dark (Navy & Teal) ── */
 :root[data-theme="farm"][data-mode="dark"] {
-  --background: 150 24% 6%;
-  --foreground: 120 18% 93%;
-  --card: 150 20% 10%;
-  --muted: 150 16% 15%;
-  --muted-foreground: 140 10% 68%;
-  --border: 150 14% 21%;
-  --input: 150 12% 30%;
-  --ring: 142 55% 55%;
-  --primary: 142 52% 46%;
-  --primary-foreground: 150 40% 6%;
-  --accent: 32 58% 62%;
-  --accent-foreground: 28 50% 8%;
-  --highlight: 43 90% 58%;
+  --background: 215 52% 8%;
+  --foreground: 210 20% 95%;
+  --card: 215 45% 12%;
+  --muted: 215 35% 16%;
+  --muted-foreground: 215 15% 65%;
+  --border: 215 28% 22%;
+  --input: 215 24% 28%;
+  --ring: 175 75% 42%;
+  --primary: 175 75% 42%;
+  --primary-foreground: 215 60% 10%;
+  --accent: 38 92% 52%;
+  --accent-foreground: 215 60% 10%;
+  --highlight: 38 90% 58%;
   --success: 142 55% 52%;
   --warning: 38 92% 58%;
   --danger: 0 78% 71%;
   --info: 205 80% 66%;
-  --nav: 150 22% 8%;
+  --nav: 215 50% 10%;
   --shadow: 0 0% 0%;
-  --overlay: 150 40% 2%;
-  --chart-1: 142 52% 52%;
-  --chart-2: 32 70% 62%;
+  --overlay: 215 55% 4%;
+  --chart-1: 175 75% 45%;
+  --chart-2: 38 90% 55%;
   --chart-3: 205 75% 66%;
-  --chart-4: 45 90% 60%;
+  --chart-4: 142 52% 52%;
   --chart-5: 340 70% 68%;
-  --sky-1: 232 40% 14%;
-  --sky-2: 215 38% 20%;
-  --sun: 45 90% 80%;
-  --hill-1: 150 22% 20%;
-  --hill-2: 145 26% 16%;
-  --field-1: 142 36% 22%;
-  --field-2: 120 28% 28%;
+  --sky-1: 215 50% 14%;
+  --sky-2: 175 40% 18%;
+  --sun: 38 90% 75%;
+  --hill-1: 175 30% 25%;
+  --hill-2: 215 35% 20%;
+  --field-1: 175 45% 22%;
+  --field-2: 215 40% 18%;
   color-scheme: dark;
 }
 
@@ -337,6 +337,35 @@
     overscroll-behavior-y: contain;
   }
   .reels-snap > * { scroll-snap-align: start; scroll-snap-stop: always; }
+
+  /* Tasteful tactile 3D UI classes */
+  .btn-3d {
+    position: relative;
+    transform: translateY(0);
+    box-shadow: 0 4px 0 0 hsl(var(--primary) / 0.35), 0 6px 12px -2px hsl(var(--primary) / 0.2);
+    transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn-3d:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 0 0 hsl(var(--primary) / 0.4), 0 8px 16px -2px hsl(var(--primary) / 0.25);
+  }
+  .btn-3d:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 0 hsl(var(--primary) / 0.4), 0 2px 4px 0 hsl(var(--primary) / 0.15);
+  }
+
+  .card-3d {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  }
+  .card-3d:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px -4px rgba(11, 25, 44, 0.08), 0 4px 6px -2px rgba(11, 25, 44, 0.04);
+  }
+
+  .badge-3d {
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06), inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+  }
 }
 
 /* Optimistic "pop" feedback on like / save toggles */
@@ -349,6 +378,10 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+  .btn-3d, .btn-3d:hover, .btn-3d:active, .card-3d, .card-3d:hover {
+    transform: none !important;
+    box-shadow: none !important;
   }
 }
 

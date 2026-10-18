@@ -11,8 +11,8 @@ import { Card } from "@/components/ui/card";
 import { Notice } from "@/components/ui/section";
 import { ListSkeleton } from "@/components/ui/skeleton";
 import { EmptyState, ErrorState } from "@/components/ui/state";
-import { useGet, useSend } from "@/hooks/use-api";
-import { uploadFile } from "@/lib/api";
+import { useGet, useSend, useInvalidate } from "@/hooks/use-api";
+import { api, uploadFile } from "@/lib/api";
 import { compressImage } from "@/lib/image";
 import { profileHref } from "@/lib/links";
 import { cn, timeAgo, formatTime } from "@/lib/utils";
@@ -47,14 +47,30 @@ function Thread({ id }: { id: string }) {
   const me = useMe().data;
   const toast = useToast();
   const router = useRouter();
+  const invalidate = useInvalidate();
   const q = useGet<{ conversation: ConversationDTO; messages: MessageDTO[]; blocked: boolean }>(`/conversations/${id}`, { refetchInterval: 8000, staleTime: 0 });
   const [text, setText] = useState("");
   const [files, setFiles] = useState<{ name: string; url: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Automatically mark unread messages as read upon viewing the conversation
+  useEffect(() => {
+    if (!id || !q.data?.conversation) return;
+    if (q.data.conversation.unread > 0) {
+      api("POST", `/conversations/${id}/read`)
+        .then(() => {
+          void invalidate("/conversations", "/auth/me");
+        })
+        .catch((err) => {
+          console.warn("[KaamSetu:Messages] Failed to mark messages as read:", err);
+        });
+    }
+  }, [id, q.data?.conversation?.unread, invalidate]);
+
   const send = useSend<{ body: string; attachments?: { name: string; url: string }[] }, MessageDTO>("POST", `/conversations/${id}/messages`, {
-    invalidate: ["/conversations"],
+    invalidate: ["/conversations", "/auth/me"],
     onSuccess: () => {
       setText("");
       setFiles([]);

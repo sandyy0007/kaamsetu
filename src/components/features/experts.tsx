@@ -18,7 +18,7 @@ import { EmptyState, ErrorState, QueryBoundary } from "@/components/ui/state";
 import { Tabs, ChipRow } from "@/components/ui/tabs";
 import { flatten, useGet, useInfiniteList, useInvalidate } from "@/hooks/use-api";
 import { useMe } from "@/hooks/use-me";
-import { api, ApiClientError } from "@/lib/api";
+import { api, ApiClientError, resolveMediaUrl } from "@/lib/api";
 import { CROPS } from "@/lib/constants";
 import { questionSchema, answerSchema, type QuestionInput } from "@/lib/schemas";
 import { cn, timeAgo } from "@/lib/utils";
@@ -271,7 +271,7 @@ export function QuestionDetail({ id }: { id: string }) {
               {x.isDemo && <DemoBadge />}
             </div>
             <p className="whitespace-pre-wrap text-lg leading-relaxed">{x.body}</p>
-            {x.imageUrl && <img src={x.imageUrl} alt="Photo attached to the question" className="mt-4 max-h-96 w-auto max-w-full rounded-xl border object-contain" />}
+            {x.imageUrl && <img src={resolveMediaUrl(x.imageUrl)} alt="Photo attached to the question" className="mt-4 max-h-96 w-auto max-w-full rounded-xl border object-contain" />}
             <div className="mt-4 flex items-center justify-between border-t pt-3">
               <UserLine user={x.asker} size="sm" sub={`Asked ${timeAgo(x.createdAt)}`} />
             </div>

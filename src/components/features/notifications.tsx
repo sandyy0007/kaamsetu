@@ -9,7 +9,8 @@ import { PageHeader } from "@/components/ui/section";
 import { ListSkeleton } from "@/components/ui/skeleton";
 import { EmptyState, ErrorState } from "@/components/ui/state";
 import { ChipRow } from "@/components/ui/tabs";
-import { useInfiniteList, useInvalidate, useSend } from "@/hooks/use-api";
+import { useInfiniteList, useInvalidate } from "@/hooks/use-api";
+import { api } from "@/lib/api";
 import { cn, timeAgo } from "@/lib/utils";
 import type { NotificationType } from "@/types/domain";
 import type { NotificationDTO, Page } from "@/types/dto";
@@ -38,22 +39,43 @@ export function NotificationsView() {
   const router = useRouter();
   const invalidate = useInvalidate();
   const [type, setType] = useState<"" | (typeof FILTERS)[number]>("");
+  const [markingAll, setMarkingAll] = useState(false);
   const q = useInfiniteList<NotificationDTO>("/notifications", { type: type || undefined });
-  const read = useSend<{ ids?: string[]; all?: boolean }, { unread: number }>("POST", "/notifications/read", { invalidate: ["/notifications", "/home"] });
   const pages = q.data?.pages as (Page<NotificationDTO> & { unread: number })[] | undefined;
   const items = pages?.flatMap((p) => p.items) ?? [];
   const unread = pages?.[0]?.unread ?? 0;
-  const open = (n: NotificationDTO) => {
-    if (!n.read) read.mutate({ ids: [n.id] });
+
+  const open = async (n: NotificationDTO) => {
+    if (!n.read) {
+      try {
+        await api("POST", "/notifications/read", { ids: [n.id] });
+        await invalidate("/notifications", "/auth/me", "/home");
+      } catch (err) {
+        console.warn("[KaamSetu:Notifications] Failed to mark notification read:", err);
+      }
+    }
     router.push(n.link || "/home");
   };
+
+  const markAllRead = async () => {
+    setMarkingAll(true);
+    try {
+      await api("POST", "/notifications/read", { all: true });
+      await invalidate("/notifications", "/auth/me", "/home");
+    } catch (err) {
+      console.warn("[KaamSetu:Notifications] Failed to mark all read:", err);
+    } finally {
+      setMarkingAll(false);
+    }
+  };
+
   return (
     <div className="max-w-3xl">
       <PageHeader
         title="Notifications"
         subtitle={unread ? `${unread} unread` : "You're all caught up."}
         actions={
-          <Button variant="outline" disabled={!unread || read.isPending} onClick={() => read.mutate({ all: true }, { onSuccess: () => void invalidate("/notifications") })}>
+          <Button variant="outline" disabled={!unread || markingAll} onClick={markAllRead}>
             <CheckCheck className="h-4 w-4" /> Mark all read
           </Button>
         }

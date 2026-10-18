@@ -1466,6 +1466,37 @@ export async function syncDbToPostgres(d: Db): Promise<void> {
       });
       syncedFingerprints.set(`follow:${fp}`, fp);
     }
+
+    // ───────────── 16. Verification Requests ─────────────
+    for (const vr of d.verificationRequests) {
+      if (!currentUsers.has(vr.userId)) continue;
+      const prismaStatus = vr.status === "APPROVED" ? "APPROVED" : vr.status === "REJECTED" || vr.status === "REVOKED" ? "REJECTED" : "PENDING";
+      const fp = `${vr.id}:${vr.status}:${vr.reviewedBy ?? ""}`;
+      if (syncedFingerprints.get(`verif:${vr.id}`) === fp) continue;
+
+      await prisma.verificationRequest.upsert({
+        where: { id: vr.id },
+        create: {
+          id: vr.id,
+          userId: vr.userId,
+          kind: vr.kind as any,
+          targetId: vr.targetId ?? null,
+          note: vr.note,
+          documentLabels: vr.documentLabels,
+          status: prismaStatus as any,
+          reviewedBy: vr.reviewedBy ?? null,
+          reviewNote: vr.reviewNote ?? null,
+          isDemo: vr.isDemo,
+          createdAt: new Date(vr.createdAt),
+        },
+        update: {
+          status: prismaStatus as any,
+          reviewedBy: vr.reviewedBy ?? null,
+          reviewNote: vr.reviewNote ?? null,
+        },
+      });
+      syncedFingerprints.set(`verif:${vr.id}`, fp);
+    }
   } catch (err) {
     console.error("[postgres-sync] Persistent write failure to PostgreSQL:", err);
     throw new ApiException(

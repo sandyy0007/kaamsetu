@@ -16,7 +16,7 @@ export interface StorageProvider {
 export class LocalDiskStorage implements StorageProvider {
   private dir = path.resolve(process.cwd(), env().STORAGE_LOCAL_DIR);
   private file(key: string) {
-    if (!/^[a-z0-9]{8,64}\.(jpg|png|webp|mp4|webm)$/.test(key)) throw badRequest("Invalid file name.");
+    if (!/^[a-z0-9_-]{4,80}\.(jpg|png|webp|mp4|webm)$/i.test(key)) throw badRequest("Invalid file name.");
     return path.join(this.dir, key); // key is validated: no path separators possible
   }
   async put(key: string, data: Buffer) {
@@ -105,13 +105,14 @@ const KINDS: FileKind[] = [
 export const mimeForKey = (key: string) => KINDS.find((k) => key.endsWith(`.${k.ext}`))?.mime ?? "application/octet-stream";
 
 /** Validates by declared type AND magic bytes (never trusts the filename or Content-Type alone). */
-export async function storeUpload(file: File): Promise<{ key: string; url: string; mime: string }> {
+export async function storeUpload(file: File, isPrivate = false, userId?: string): Promise<{ key: string; url: string; mime: string }> {
   const kind = KINDS.find((k) => k.mime === file.type);
   if (!kind) throw badRequest("Only JPG, PNG, WebP images or MP4/WebM videos are allowed.");
   if (file.size > kind.maxBytes) throw badRequest(`File is too large (max ${Math.round(kind.maxBytes / 1024 / 1024)} MB).`);
   const data = Buffer.from(await file.arrayBuffer());
   if (!kind.magic(data)) throw badRequest("This file does not look like a valid " + kind.ext.toUpperCase() + ".");
-  const key = `${randomBytes(12).toString("hex")}.${kind.ext}`;
+  const prefix = isPrivate ? (userId ? `doc_${userId}_` : "doc_") : "";
+  const key = `${prefix}${randomBytes(12).toString("hex")}.${kind.ext}`;
   await getStorage().put(key, data);
   return { key, url: `/api/files/${key}`, mime: kind.mime };
 }

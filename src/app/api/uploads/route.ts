@@ -50,8 +50,9 @@ export async function POST(req: Request) {
     const form = await req.formData();
     const file = form.get("file");
     if (!(file instanceof File)) throw badRequest("Choose a file to upload.");
-    const stored = await storeUpload(file);
-    return Response.json({ data: { url: stored.url, mime: stored.mime } }, { headers: corsHeaders });
+    const isPrivate = form.get("isPrivateDoc") === "true";
+    const stored = await storeUpload(file, isPrivate, user.id);
+    return Response.json({ data: { url: stored.url, mime: stored.mime, key: stored.key }, key: stored.key, url: stored.url }, { headers: corsHeaders });
   } catch (err) {
     if (err instanceof ApiException) {
       return Response.json({ error: { code: err.code, message: err.message } }, { status: err.status, headers: corsHeaders });

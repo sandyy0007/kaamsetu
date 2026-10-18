@@ -1,15 +1,14 @@
 import { z } from "zod";
-import type { Db, User, VerificationKind } from "@/types/domain";
-import type { Me, VerificationStatusDTO } from "@/types/dto";
-import { identitySchema, loginEmailSchema, loginPhoneSchema, notificationPrefsSchema, otpVerifySchema, privacySchema, professionalPrivacySchema, registerSchema, verificationRequestSchema, blockSchema, passwordResetRequestSchema, passwordResetConfirmSchema, changePasswordSchema } from "@/lib/schemas";
+import type { Db, User } from "@/types/domain";
+import type { Me } from "@/types/dto";
+import { identitySchema, loginEmailSchema, loginPhoneSchema, notificationPrefsSchema, otpVerifySchema, privacySchema, professionalPrivacySchema, registerSchema, blockSchema, passwordResetRequestSchema, passwordResetConfirmSchema, changePasswordSchema } from "@/lib/schemas";
 import { clearSessionCookie, consumeOtp, createOtpChallenge, findUserByIdentifier, loginWithPassword, normalizePhone, registrationPayload, sessionCookie, signSession } from "../../auth";
-import { hashPassword, newId, verifyPassword } from "../../crypto";
+import { hashPassword, verifyPassword } from "../../crypto";
 import { persist } from "../../db";
 import { env } from "../../env";
 import { badRequest, forbidden, notFound } from "../../errors";
 import { userSummary } from "../../mappers";
 import { requireRole, requireUser } from "../../permissions";
-import { sanitizeText } from "@/lib/utils";
 import { route } from "../router";
 
 export function buildMe(d: Db, u: User): Me {
@@ -218,27 +217,6 @@ route("PUT", "/me/personalization", async (c) => {
   u.personalization = enabled;
   persist();
   return { enabled };
-});
-
-const KIND_FOR_ROLE: Record<string, VerificationKind> = { FARMER: "FARMER", BUYER: "BUYER", EXPERT: "EXPERT", GOVERNMENT: "ORGANIZATION", FPO: "FPO", PROFESSIONAL: "PROFESSIONAL" };
-
-route("GET", "/me/verification", (c): VerificationStatusDTO => {
-  const u = requireUser(c.user);
-  const req = c.d.verificationRequests.filter((r) => r.userId === u.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
-  return { verified: !!u.verifiedAt, request: req && { id: req.id, kind: req.kind, status: req.status, note: req.note, reviewNote: req.reviewNote, createdAt: req.createdAt } };
-});
-
-route("POST", "/me/verification", async (c) => {
-  const u = requireUser(c.user);
-  const kind = KIND_FOR_ROLE[u.role];
-  if (!kind) throw badRequest("Admins do not need verification.");
-  if (u.verifiedAt) throw badRequest("You are already verified.");
-  if (c.d.verificationRequests.some((r) => r.userId === u.id && r.status === "PENDING")) throw badRequest("You already have a pending verification request.");
-  const input = await c.body(verificationRequestSchema);
-  // Users can only REQUEST verification. Badge assignment happens in the admin review flow.
-  c.d.verificationRequests.push({ id: newId("vr"), userId: u.id, kind, note: input.note, documentLabels: input.documentLabels.map(sanitizeText), status: "PENDING", createdAt: new Date().toISOString(), isDemo: false });
-  persist();
-  return { ok: true };
 });
 
 route("GET", "/me/blocks", (c) => {

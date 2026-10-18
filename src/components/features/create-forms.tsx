@@ -11,7 +11,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { Notice } from "@/components/ui/section";
 import { TagInput } from "@/components/ui/tag-input";
 import { useGet, useInvalidate } from "@/hooks/use-api";
-import { api, ApiClientError, uploadFile } from "@/lib/api";
+import { api, ApiClientError, uploadFile, resolveMediaUrl } from "@/lib/api";
 import { CROPS, FARMING_METHODS } from "@/lib/constants";
 import { DISTRICT_NAMES } from "@/lib/geo";
 import { communitySchema, eventSchema, listingSchema, liveScheduleSchema, machinerySchema, postSchema, reelSchema, requirementSchema, schemeSchema, type EventInput, type ListingInput, type MachineryInput, type PostInput, type ReelInput, type RequirementInput, type SchemeInput } from "@/lib/schemas";
@@ -170,7 +170,7 @@ export function ReelForm() {
         <p className="mb-1.5 text-sm font-semibold">Video (MP4 / WebM, up to 25 MB, 3 minutes)</p>
         {video ? (
           <div className="space-y-2">
-            <video src={video} controls className="max-h-64 rounded-xl border" />
+            <video src={resolveMediaUrl(video)} controls className="max-h-64 rounded-xl border" />
             <Button type="button" variant="ghost" size="sm" onClick={() => setVideo(undefined)}>
               Remove video
             </Button>

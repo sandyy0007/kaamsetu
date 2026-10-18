@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/form";
 import { Sheet } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGet, useInvalidate } from "@/hooks/use-api";
-import { api, ApiClientError } from "@/lib/api";
+import { api, ApiClientError, resolveMediaUrl } from "@/lib/api";
 import { cn, formatDate, timeAgo } from "@/lib/utils";
 import type { CommentDTO, PostDTO, ReelDTO, StoryDTO } from "@/types/dto";
 import { LikeButton, ReportButton, SaveButton, ShareButton, FollowButton } from "./actions";
@@ -128,6 +128,7 @@ export function CommentThread({ targetType, targetId, onCount }: { targetType: "
 export function PostCard({ post, onDeleted, compact }: { post: PostDTO; onDeleted?: () => void; compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const [cc, setCc] = useState(post.commentCount);
+  const [imgError, setImgError] = useState(false);
   const toast = useToast();
   const invalidate = useInvalidate();
   const remove = async () => {
@@ -177,7 +178,22 @@ export function PostCard({ post, onDeleted, compact }: { post: PostDTO; onDelete
           <RichText text={post.body} />
         </div>
         {(post.imageUrl || post.scene) && (
-          <div className="mt-3 aspect-[5/3] overflow-hidden bg-muted">{post.imageUrl ? <img src={post.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover" /> : <Scene kind={post.scene!} />}</div>
+          <div className="mt-3 aspect-[5/3] overflow-hidden bg-muted">
+            {post.imageUrl && !imgError ? (
+              <img
+                src={resolveMediaUrl(post.imageUrl)}
+                alt=""
+                loading="lazy"
+                onError={() => {
+                  console.warn("[KaamSetu:Media:PostImageError]", { postId: post.id, url: post.imageUrl });
+                  setImgError(true);
+                }}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <Scene kind={post.scene ?? "sunrise"} />
+            )}
+          </div>
         )}
         <div className="flex items-center justify-between px-2 py-1.5">
           <div className="flex items-center">

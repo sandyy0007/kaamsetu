@@ -14,6 +14,13 @@ import type { Language } from "@/types/domain";
 import { cn } from "@/lib/utils";
 
 function NativeAppSplash() {
+  const [slowNotice, setSlowNotice] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSlowNotice(true), 6000);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div
       className="grid min-h-dvh place-items-center p-6 bg-background pt-safe pb-safe"
@@ -28,6 +35,18 @@ function NativeAppSplash() {
           <div className="skeleton mx-auto h-4 w-32 rounded-full" />
           <div className="skeleton mx-auto h-3 w-48 rounded-full" />
         </div>
+        {slowNotice && (
+          <div className="pt-4 space-y-2 animate-fade-in text-xs text-muted-foreground">
+            <p>Connecting to KaamSetu cloud services...</p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="text-primary font-semibold underline"
+            >
+              Tap here to retry
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

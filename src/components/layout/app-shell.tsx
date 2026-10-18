@@ -357,6 +357,27 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => setMenu(false), [pathname]);
 
+  // Synchronize unread counts (messages & notifications) on app resume, window focus, or periodic interval
+  useEffect(() => {
+    const handleSync = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        void refetch();
+      }
+    };
+    window.addEventListener("focus", handleSync);
+    document.addEventListener("visibilitychange", handleSync);
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        void refetch();
+      }
+    }, 30000);
+    return () => {
+      window.removeEventListener("focus", handleSync);
+      document.removeEventListener("visibilitychange", handleSync);
+      clearInterval(interval);
+    };
+  }, [refetch]);
+
   if (isError && !me) {
     return (
       <div className="grid min-h-dvh place-items-center p-6 bg-background pt-safe pb-safe">

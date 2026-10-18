@@ -48,6 +48,9 @@ export interface User extends Demoable {
   headline?: string;
   verifiedAt?: string; // ONLY admins can set this (see verification service)
   verifiedBy?: string;
+  verificationStatus?: VerificationStatus;
+  verificationBadgeType?: "PHONE" | "EMAIL" | "BUSINESS" | "ORGANIZATION" | "GOVERNMENT" | "PROFESSIONAL";
+  verificationExpiresAt?: string;
   status: UserStatus;
   language: Language;
   notificationPrefs: NotificationPrefs;
@@ -666,18 +669,76 @@ export interface Message extends Demoable {
   createdAt: string;
 }
 
+export type VerificationStatus =
+  | "UNVERIFIED"
+  | "PENDING"
+  | "NEEDS_MORE_INFORMATION"
+  | "VERIFIED_EMAIL"
+  | "VERIFIED_PHONE"
+  | "VERIFIED_BUSINESS"
+  | "VERIFIED_ORGANIZATION"
+  | "VERIFIED_GOVERNMENT"
+  | "APPROVED"
+  | "REJECTED"
+  | "EXPIRED"
+  | "REVOKED";
+
+export type VerificationCategory =
+  | "PROFESSIONAL"
+  | "BUYER"
+  | "EXPERT"
+  | "BUSINESS"
+  | "ORGANIZATION"
+  | "GOVERNMENT";
+
+export type GovernmentCategory =
+  | "CENTRAL_GOVERNMENT"
+  | "STATE_GOVERNMENT"
+  | "DEPARTMENT"
+  | "DISTRICT_ADMINISTRATION"
+  | "MUNICIPAL_LOCAL_BODY"
+  | "PUBLIC_INSTITUTION";
+
+export interface VerificationAuditEvent {
+  id: string;
+  action: "REQUESTED" | "EMAIL_CHALLENGE" | "DOMAIN_CHALLENGE" | "MORE_INFO_REQUESTED" | "APPROVED" | "REJECTED" | "EXPIRED" | "REVOKED";
+  actorId: string;
+  note?: string;
+  timestamp: string;
+}
+
+export interface VerificationChallenge {
+  type: "EMAIL" | "DOMAIN";
+  target: string;
+  tokenHash: string;
+  status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
+  expiresAt: string;
+  verifiedAt?: string;
+  attempts: number;
+}
+
 export interface VerificationRequest extends Demoable {
   id: string;
   userId: string;
   kind: VerificationKind;
+  category?: VerificationCategory;
+  governmentCategory?: GovernmentCategory;
+  legalName?: string;
+  website?: string;
+  orgEmail?: string;
+  registrationNumber?: string;
   note: string;
   /** Business verification targets a Business row (not the person). */
   targetId?: string;
   documentLabels: string[]; // labels only — documents live in private object storage
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  status: VerificationStatus;
+  challenges?: VerificationChallenge[];
   reviewedBy?: string;
   reviewNote?: string;
+  expiresAt?: string;
+  auditTrail?: VerificationAuditEvent[];
   createdAt: string;
+  updatedAt?: string;
 }
 
 export type ReportTarget = "POST" | "REEL" | "COMMENT" | "USER" | "LISTING" | "QUESTION" | "MESSAGE" | "REQUIREMENT" | "SERVICE" | "OPPORTUNITY" | "BUSINESS";

@@ -79,6 +79,22 @@ route("GET", "/conversations/:id", (c) => {
   return { conversation: convoDTO(c, convo), messages, blocked: !!otherId && isBlockedEitherWay(c.d, u.id, otherId) };
 });
 
+route("POST", "/conversations/:id/read", (c) => {
+  const u = requireUser(c.user);
+  const convo = mineOrThrow(c, c.params.id!);
+  let changed = false;
+  c.d.messages
+    .filter((m) => m.conversationId === convo.id && m.senderId !== u.id && !m.readBy.includes(u.id))
+    .forEach((m) => {
+      m.readBy.push(u.id);
+      changed = true;
+    });
+  if (changed) persist();
+  const myConvos = new Set(c.d.conversations.filter((conv) => conv.participantIds.includes(u.id)).map((conv) => conv.id));
+  const unreadMessages = c.d.messages.filter((m) => myConvos.has(m.conversationId) && m.senderId !== u.id && !m.readBy.includes(u.id)).length;
+  return { ok: true, conversationId: convo.id, unreadMessages };
+});
+
 route("POST", "/conversations", async (c) => {
   const u = requireUser(c.user);
   const input = await c.body(startConversationSchema);

@@ -52,6 +52,7 @@ import { VERIFIED_LABEL } from "@/lib/constants";
 import { computeCycleStats } from "@/lib/farm-calc";
 import { daysUntil } from "@/lib/utils";
 import { canSee } from "./privacy";
+import { getVerificationBadge } from "./services/verification";
 
 export interface View {
   d: Db;
@@ -72,7 +73,8 @@ export function userDistrict(d: Db, userId: string): string | undefined {
 }
 
 export function userSummary(d: Db, u: User): UserSummary {
-  const verified = !!u.verifiedAt;
+  const vBadge = getVerificationBadge(u, d);
+  const verified = !!vBadge;
   const org = u.role === "GOVERNMENT" || u.role === "FPO";
   const pp = d.professionalProfiles.find((p) => p.userId === u.id);
   const prof = pp && d.professions.find((x) => x.id === pp.professionId);
@@ -85,8 +87,9 @@ export function userSummary(d: Db, u: User): UserSummary {
     hue: u.hue,
     headline: u.headline,
     verified,
-    // Verified badge names the actual trade ("Verified Electrician"); the admin approval behind it is unchanged.
-    badge: verified ? (u.role === "PROFESSIONAL" && profession ? `Verified ${profession.name}` : VERIFIED_LABEL[u.role]) : undefined,
+    // Verified badge names the actual trade ("Verified Electrician") or status; the admin approval behind it is unchanged.
+    badge: vBadge ? vBadge.label : (verified ? (u.role === "PROFESSIONAL" && profession ? `Verified ${profession.name}` : VERIFIED_LABEL[u.role]) : undefined),
+    verificationBadge: vBadge,
     district: org ? undefined : userDistrict(d, u.id),
     profession,
     isDemo: u.isDemo,

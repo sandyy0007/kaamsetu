@@ -28,7 +28,7 @@ import { Tabs } from "@/components/ui/tabs";
 import { useGet } from "@/hooks/use-api";
 import { useMe } from "@/hooks/use-me";
 import { useRouteEntityId } from "@/hooks/use-route-entity-id";
-import { ApiClientError } from "@/lib/api";
+import { ApiClientError, resolveMediaUrl } from "@/lib/api";
 import { VISIBILITY_LABEL } from "@/lib/constants";
 import { sceneForProfession } from "@/lib/profession-scene";
 import { formatDate } from "@/lib/utils";
@@ -459,7 +459,7 @@ function PortfolioTab({
               <div className="h-32">
                 {i.imageUrl ? (
                   <img
-                    src={i.imageUrl}
+                    src={resolveMediaUrl(i.imageUrl)}
                     alt={i.title}
                     className="h-full w-full object-cover"
                     loading="lazy"

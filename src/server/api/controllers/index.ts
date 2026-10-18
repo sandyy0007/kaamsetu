@@ -8,4 +8,5 @@ import "./social";
 import "./market";
 import "./knowledge";
 import "./comms";
+import "./verification";
 import "./admin";

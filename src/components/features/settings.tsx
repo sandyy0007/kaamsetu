@@ -1,6 +1,6 @@
 "use client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BadgeCheck, Check, LogOut, ShieldCheck, UserX } from "lucide-react";
+import { Check, LogOut, ShieldCheck, UserX } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -18,6 +18,7 @@ import { Notice } from "@/components/ui/section";
 import { Segmented } from "@/components/ui/tabs";
 import { ListSkeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/ui/avatar";
+import { VerificationBadge } from "@/components/features/verification-badge";
 import { useGet, useInvalidate, useSend } from "@/hooks/use-api";
 import { useMe } from "@/hooks/use-me";
 import { api, ApiClientError } from "@/lib/api";
@@ -184,39 +185,242 @@ function Personalization() {
   );
 }
 
-const verifyForm = z.object({ note: z.string().trim().min(10, "Tell us a little more (10+ characters)").max(600), docs: z.string().trim().min(2, "List at least one document") });
-
 function Verification() {
   const me = useMe().data!;
   const q = useGet<VerificationStatusDTO>("/me/verification", { staleTime: 0 });
   const toast = useToast();
   const invalidate = useInvalidate();
-  const { register, handleSubmit, formState, setError, reset } = useForm<z.infer<typeof verifyForm>>({ resolver: zodResolver(verifyForm), defaultValues: { note: "", docs: "" } });
-  const submit = handleSubmit(async (v) => {
-    try {
-      await api("POST", "/me/verification", { note: v.note, documentLabels: v.docs.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 6) });
-      toast({ title: "Request sent", description: "An admin will review it." });
-      reset();
-      await invalidate("/me/verification");
-    } catch (e) {
-      setError("note", { message: e instanceof ApiClientError ? e.message : "Couldn't send request" });
+
+  const [category, setCategory] = useState<"PROFESSIONAL" | "BUSINESS" | "ORGANIZATION" | "GOVERNMENT">(
+    me.role === "GOVERNMENT" ? "GOVERNMENT" : me.role === "FPO" ? "ORGANIZATION" : me.role === "BUYER" ? "BUSINESS" : "PROFESSIONAL"
+  );
+  const [govCategory, setGovCategory] = useState("DEPARTMENT");
+  const [legalName, setLegalName] = useState("");
+  const [website, setWebsite] = useState("");
+  const [orgEmail, setOrgEmail] = useState("");
+  const [regNumber, setRegNumber] = useState("");
+  const [note, setNote] = useState("");
+  const [docs, setDocs] = useState("");
+
+  // Email challenge state
+  const [challengeId, setChallengeId] = useState<string | null>(null);
+  const [emailOtp, setEmailOtp] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const startEmailChallenge = async () => {
+    if (!orgEmail || !orgEmail.includes("@")) {
+      toast({ title: "Enter a valid official email first", kind: "error" });
+      return;
     }
-  });
+    setSendingOtp(true);
+    try {
+      const res = await api<{ challengeId: string; demoCode?: string }>("POST", "/me/verification/email/start", { email: orgEmail });
+      setChallengeId(res.challengeId);
+      if (res.demoCode) {
+        toast({ title: "OTP Sent (Demo)", description: `Verification code: ${res.demoCode}` });
+      } else {
+        toast({ title: "Verification code sent", description: `Check inbox for ${orgEmail}` });
+      }
+    } catch (err) {
+      toast({ title: err instanceof ApiClientError ? err.message : "Failed to send code", kind: "error" });
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const confirmEmailOtp = async () => {
+    if (!challengeId || !emailOtp) return;
+    setVerifyingOtp(true);
+    try {
+      await api("POST", "/me/verification/email/verify", { challengeId, code: emailOtp.trim() });
+      setEmailVerified(true);
+      toast({ title: "Official email verified successfully!" });
+    } catch (err) {
+      toast({ title: err instanceof ApiClientError ? err.message : "Invalid code", kind: "error" });
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!note || note.trim().length < 10) {
+      toast({ title: "Please provide at least 10 characters in your statement", kind: "error" });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await api("POST", "/me/verification", {
+        category,
+        governmentCategory: category === "GOVERNMENT" ? govCategory : undefined,
+        legalName: legalName.trim() || undefined,
+        website: website.trim() || undefined,
+        orgEmail: orgEmail.trim() || undefined,
+        registrationNumber: regNumber.trim() || undefined,
+        note: note.trim(),
+        documentLabels: docs.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 6),
+      });
+      toast({ title: "Verification request submitted", description: "Our verification team will review your credentials." });
+      await invalidate("/me/verification", "/auth/me");
+    } catch (err) {
+      toast({ title: err instanceof ApiClientError ? err.message : "Submission failed", kind: "error" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (me.role === "ADMIN") return null;
   const s = q.data;
+
   return (
-    <Section id="verification" title="Verification" description="Badges are granted only by KaamSetu admins after review. You can request one — you can't give yourself one.">
-      {q.isLoading ? <ListSkeleton count={1} /> : s?.verified ? (
-        <div className="flex items-center gap-3"><BadgeCheck className="h-8 w-8 text-info" aria-hidden /><div><p className="font-bold">You&apos;re verified</p><p className="text-sm text-muted-foreground">{me.badge ?? "Verified"}</p></div></div>
+    <Section id="verification" title="Verification & Authenticity" description="Authenticity seals are verified through government registries, institutional domains, and credential reviews.">
+      {q.isLoading ? (
+        <ListSkeleton count={1} />
+      ) : s?.verified ? (
+        <div className="flex items-start gap-4 p-4 rounded-2xl bg-card border border-border shadow-sm">
+          <VerificationBadge badge={s.badge} size="lg" />
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-base text-foreground">{s.badge?.label ?? "Verified"}</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">Active</span>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {s.badge?.aboutText ?? "Your profile has completed official verification."}
+            </p>
+            {s.badge?.verifiedAt && (
+              <p className="text-[11px] text-muted-foreground">
+                Verified on {formatDate(s.badge.verifiedAt)}
+              </p>
+            )}
+          </div>
+        </div>
       ) : s?.request?.status === "PENDING" ? (
-        <Notice tone="info" title="Request pending">Submitted {formatDate(s.request.createdAt)}. We&apos;ll notify you when it&apos;s reviewed.</Notice>
+        <div className="space-y-3">
+          <Notice tone="info" title="Verification Review in Progress">
+            Your verification request for <strong className="font-semibold">{s.request.category ?? s.request.kind}</strong> was submitted on {formatDate(s.request.createdAt)}.
+            Our administrators evaluate official credentials to ensure community authenticity.
+          </Notice>
+          {s.request.challenges && s.request.challenges.length > 0 && (
+            <div className="p-3.5 rounded-xl border bg-muted/40 space-y-2 text-xs">
+              <span className="font-semibold text-foreground">Authentication Challenges:</span>
+              <ul className="space-y-1 text-muted-foreground">
+                {s.request.challenges.map((ch, idx) => (
+                  <li key={idx} className="flex items-center gap-2">
+                    <span className={cn("h-2 w-2 rounded-full", ch.status === "VERIFIED" ? "bg-emerald-500" : "bg-amber-500")} />
+                    <span>{ch.type === "EMAIL" ? "Official Email" : "Domain DNS"}: {ch.target} — <strong>{ch.status}</strong></span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       ) : (
-        <div className="space-y-4">
-          {s?.request?.status === "REJECTED" && <Notice tone="warning" title="Last request was not approved">{s.request.reviewNote ?? "You can apply again with more detail."}</Notice>}
-          <form onSubmit={submit} noValidate className="space-y-4">
-            <Field label="About you" hint="Who are you and why should people trust this profile?" error={formState.errors.note?.message} required>{(a) => <Textarea {...a} rows={3} {...register("note")} />}</Field>
-            <Field label="Documents you can provide" hint="Comma-separated names only, e.g. Land record, FPO membership. Do NOT upload or type document numbers." error={formState.errors.docs?.message} required>{(a) => <Input {...a} {...register("docs")} placeholder="Land record, FPO membership letter" />}</Field>
-            <Button type="submit" loading={formState.isSubmitting}><ShieldCheck className="h-4 w-4" /> Request verification</Button>
+        <div className="space-y-5">
+          {s?.request?.status === "REJECTED" && (
+            <Notice tone="warning" title="Previous Request Not Approved">
+              {s.request.reviewNote ?? "Please ensure credentials match registered public records before resubmitting."}
+            </Notice>
+          )}
+          {s?.request?.status === "NEEDS_MORE_INFORMATION" && (
+            <Notice tone="info" title="Additional Information Requested">
+              {s.request.reviewNote ?? "Please provide additional documentation or verify your official email below."}
+            </Notice>
+          )}
+
+          <form onSubmit={submit} className="space-y-4">
+            <div>
+              <label className="text-xs font-semibold text-foreground block mb-1.5">Verification Category</label>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {[
+                  { id: "PROFESSIONAL", label: "Professional" },
+                  { id: "BUSINESS", label: "Business" },
+                  { id: "ORGANIZATION", label: "Organization / FPO" },
+                  { id: "GOVERNMENT", label: "Government" },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setCategory(item.id as typeof category)}
+                    className={cn(
+                      "py-2 px-3 text-xs font-semibold rounded-xl border text-center transition-all",
+                      category === item.id ? "border-primary bg-primary/10 text-primary font-bold shadow-sm" : "border-border hover:bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {category === "GOVERNMENT" && (
+              <Field label="Government Jurisdiction / Entity Type">
+                {(a) => (
+                  <Select {...a} value={govCategory} onChange={(e) => setGovCategory(e.target.value)}>
+                    <option value="CENTRAL_GOVERNMENT">Central Ministry / Department</option>
+                    <option value="STATE_GOVERNMENT">State Government Department</option>
+                    <option value="DISTRICT_ADMINISTRATION">District Administration / Collectorate</option>
+                    <option value="MUNICIPAL_LOCAL_BODY">Municipal Corporation / Panchayat</option>
+                    <option value="PUBLIC_INSTITUTION">Public Autonomous Institution / KVK</option>
+                  </Select>
+                )}
+              </Field>
+            )}
+
+            {(category === "ORGANIZATION" || category === "GOVERNMENT" || category === "BUSINESS") && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Legal Entity Name" required>
+                  {(a) => <Input {...a} value={legalName} onChange={(e) => setLegalName(e.target.value)} placeholder="e.g. Krishi Vigyan Kendra, Jaipur" />}
+                </Field>
+                <Field label="Official Registration / CIN / Unique ID">
+                  {(a) => <Input {...a} value={regNumber} onChange={(e) => setRegNumber(e.target.value)} placeholder="e.g. REG-2024-98432" />}
+                </Field>
+                <Field label="Official Website" hint="Used for domain verification">
+                  {(a) => <Input {...a} value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://kvkjaipur.gov.in" />}
+                </Field>
+                <Field label="Official / Institutional Email" hint="Free email services (gmail/yahoo) not allowed for institutions">
+                  {(a) => (
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Input {...a} value={orgEmail} onChange={(e) => setOrgEmail(e.target.value)} placeholder="director@kvkjaipur.gov.in" />
+                        {!emailVerified && (
+                          <Button type="button" size="sm" variant="outline" loading={sendingOtp} onClick={startEmailChallenge}>
+                            Send OTP
+                          </Button>
+                        )}
+                      </div>
+                      {challengeId && !emailVerified && (
+                        <div className="flex gap-2 pt-1 animate-fade-in">
+                          <Input value={emailOtp} onChange={(e) => setEmailOtp(e.target.value)} placeholder="6-digit code" className="w-32" />
+                          <Button type="button" size="sm" loading={verifyingOtp} onClick={confirmEmailOtp}>
+                            Verify Code
+                          </Button>
+                        </div>
+                      )}
+                      {emailVerified && (
+                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold inline-flex items-center gap-1">
+                          ✓ Official email confirmed
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </Field>
+              </div>
+            )}
+
+            <Field label="Professional Statement / Organization Overview" hint="Describe your entity, leadership, and public function." required>
+              {(a) => <Textarea {...a} rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Describe your credentials, role in the community, and services provided..." />}
+            </Field>
+
+            <Field label="Supporting Documents" hint="Comma-separated labels of documents you possess (e.g. Trade License, FPO Registration, Gazette Notification). Never enter raw Aadhaar or PAN numbers.">
+              {(a) => <Input {...a} value={docs} onChange={(e) => setDocs(e.target.value)} placeholder="Govt registration letter, Institutional accreditation certificate" />}
+            </Field>
+
+            <Button type="submit" loading={submitting}>
+              <ShieldCheck className="h-4 w-4" /> Submit for Verification
+            </Button>
           </form>
         </div>
       )}
